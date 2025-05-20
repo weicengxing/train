@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>心动的感觉</title>
+
+<style>
+
+/*定义一个跳动动画*/
+
+@keyframes jump{
+
+from{
+ transform: scale(1.0);/*框架大小倍率调整到原来的0.5倍*/
+
+ opacity: 0.5;
+
+ /*box-shadow: 10px 10px 6px;阴影效果*/
+
+ }to{
+
+ transform: scale(2);
+
+ opacity: 1;
+
+ }
+
+ }
+
+ /*定义一个旋转动画*/
+
+ @keyframes circles{
+
+ from{
+
+ transform: rotate(0deg);
+
+ z-index: 1;/*出现*/
+
+ }to{
+
+ transform: rotate(720deg);
+
+ z-index: -1;/*隐藏*/
+
+ }
+
+ }
+
+ .f{
+
+ width: 170px;
+
+ height: 160px;
+
+ position: relative;
+
+ left: 200px;
+
+ top:200px;
+
+ /*给父元素绑定动画*/
+
+ /*animation:jump 1s ease alternate infinite ;*/
+
+ }
+
+ .m{
+
+ animation:jump 1s ease alternate infinite;
+
+ }
+
+ .f>div{
+
+ position: absolute;
+
+ }
+
+ /*两个圆*/
+
+ .z1,.z2{
+
+ width: 100px;
+
+ height: 100px;
+
+ border-radius: 50%;
+
+ background-color: red;
+
+ }
+
+ .z2{
+
+ left: 70px;
+
+ }
+
+ .z3{
+
+width: 100px;
+
+height: 100px;
+left: 35px;
+
+top:35px;
+
+background-color: red;
+
+ transform: rotate(45deg);
+
+ }
+
+.z4{
+
+ top:50px;
+
+ left: 40px;
+
+font-size: large;
+
+color: aliceblue;
+
+ z-index: -1;
+
+ }
+
+.z4c{
+
+ animation: circles 1s linear 1s infinite alternate;
+ }
+
+button{
+
+width: 80px;
+
+ height: 40px;
+
+ background-color:rgb(54, 214, 54);
+
+ border: none;
+
+ color:white;
+
+ font-size:large;
+
+ border-radius: 10px;
+
+ cursor: pointer;
+
+ box-shadow:0 8px 5px gray;
+
+ }
+ button:active{
+
+transform: translate(5px,5px);
+
+ }
+
+ </style>
+
+</head>
+
+<body>
+
+ <button onclick="start1()">开始</button>
+
+ <button onclick="stop1()">停止</button>
+
+ <div id="divF" class="f"><!--class中可以有多个值-->
+
+ <div class="z1"></div>
+
+ <div class="z2"></div>
+
+ <div class="z3"></div>
+
+<div id="z4" class="z4">i&emsp;love&emsp;u</div><!--&emsp是空格-->
+
+</div>
+
+</body>
+
+<script>
+
+//1.获取
+
+let divF=document.getElementById('divF')
+
+let z4=document.getElementById('z4')
+
+function start1(){
+
+//2.设值
+
+ divF.className='f m'
+
+z4.className='z4 z4c'
+
+}
+
+function stop1(){
+
+//2.设值
+
+ divF.className='f'
+
+ z4.className='z4'
+
+}
+
+
+</script>
+
+</html>

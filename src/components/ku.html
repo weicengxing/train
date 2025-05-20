@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>酷狗音乐主页 - 梦幻效果</title>
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(45deg, #6a4cfc, #00c6ff);
+            background-size: 400% 400%;
+            animation: gradient 10s ease infinite;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* 梦幻背景动画 */
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        header {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        header .logo {
+            font-size: 30px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #fff;
+            text-shadow: 0px 0px 10px rgba(255, 255, 255, 0.6);
+        }
+
+        header nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+
+        header nav ul li {
+            margin-right: 30px;
+        }
+
+        header nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        header nav ul li a:hover {
+            color: #ff69b4;
+            text-shadow: 0px 0px 10px rgba(255, 105, 180, 0.7);
+        }
+
+        /* 推荐音乐区域 */
+        .recommend h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
+            color: #fff;
+        }
+
+        .music-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .music-item {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .music-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .music-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .music-item img:hover {
+            transform: scale(1.1);
+        }
+
+        .music-item p {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            transition: color 0.3s ease;
+        }
+
+        .music-item p:hover {
+            color: #ff69b4;
+        }
+
+        /* 播放器区域 */
+        .player {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            margin-top: 50px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(15px);
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .player-info img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-right: 20px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .player-info img:hover {
+            transform: scale(1.1);
+        }
+
+        .player-info div {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .song-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .song-artist {
+            font-size: 16px;
+            color: #ddd;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+        }
+
+        .controls button {
+            background: #ff69b4;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        .controls button:hover {
+            background: #ff1493;
+            transform: scale(1.1);
+        }
+
+        /* 页脚 */
+        footer {
+            background-color: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            text-align: center;
+            padding: 15px 0;
+            margin-top: 50px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        footer p {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <header>
+        <div class="logo">酷狗音乐</div>
+        <nav>
+            <ul>
+                <li><a href="#">首页</a></li>
+                <li><a href="#">音乐</a></li>
+                <li><a href="#">歌单</a></li>
+                <li><a href="#">排行榜</a></li>
+                <li><a href="#">我的</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- 主内容区域 -->
+    <main>
+        <!-- 推荐音乐区域 -->
+        <section class="recommend">
+            <h2>为你推荐</h2>
+            <div class="music-list">
+                <div class="music-item">
+                    <img src="https://via.placeholder.com/300" alt="音乐封面">
+                    <p>歌曲名称 1</p>
+                </div>
+                <div class="music-item">
+                    <img src="https://via.placeholder.com/300" alt="音乐封面">
+                    <p>歌曲名称 2</p>
+                </div>
+                <div class="music-item">
+                    <img src="https://via.placeholder.com/300" alt="音乐封面">
+                    <p>歌曲名称 3</p>
+                </div>
+                <div class="music-item">
+                    <img src="https://via.placeholder.com/300" alt="音乐封面">
+                    <p>歌曲名称 4</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 播放器区域 -->
+        <section class="player">
+            <div class="player-info">
+                <img src="https://via.placeholder.com/60" alt="播放封面">
+                <div>
+                    <p class="song-title">歌曲名称</p>
+                    <p class="song-artist">歌手名称</p>
+                </div>
+            </div>
+            <div class="controls">
+                <button class="prev">&#9664;</button>
+                <button class="play">播放</button>
+                <button class="next">&#9654;</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 酷狗音乐示例</p>
+    </footer>
+</body>
+</html>

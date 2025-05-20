@@ -1,0 +1,236 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>推荐界面</title>
+  <style>
+    /* 全局样式 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "PingFang SC", "微软雅黑", Arial, sans-serif;
+      background: #f0f4f7;
+      color: #333;
+    }
+
+    /* 顶部导航栏 */
+    .header {
+      background: linear-gradient(to right, #e3f2fd, #ffffff);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .header .title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #000;
+    }
+
+    .header nav span {
+      margin-left: 15px;
+      font-size: 16px;
+      color: #555;
+    }
+
+    /* 搜索栏 */
+    .search-bar {
+      margin: 15px;
+      position: relative;
+    }
+
+    .search-bar input {
+      width: 100%;
+      padding: 12px 40px;
+      border: 1px solid #ddd;
+      border-radius: 25px;
+      font-size: 14px;
+    }
+
+    .search-bar::before {
+      content: "🔍";
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      color: #999;
+    }
+
+    /* 主内容区 */
+    .main {
+      padding: 10px;
+    }
+
+    /* 卡片布局 */
+    .cards {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      width: 48%;
+      background: #fff;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card img {
+      width: 100%;
+      display: block;
+    }
+
+    .card .tag {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 0, 0, 0.8);
+      color: #fff;
+      font-size: 12px;
+      padding: 5px 8px;
+      border-radius: 5px;
+    }
+
+    .card p {
+      font-size: 14px;
+      text-align: center;
+      margin: 10px 0;
+      color: #333;
+    }
+
+    /* 听歌报告 */
+    .report {
+      background: #000;
+      color: #fff;
+      margin: 10px auto;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .report img {
+      width: 100%;
+    }
+
+    /* 个人推荐 */
+    .personal-section {
+      background: #fff;
+      padding: 10px;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin-top: 10px;
+    }
+
+    .personal-section .song {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .personal-section img {
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+      margin-right: 10px;
+    }
+
+    .personal-section .info {
+      font-size: 14px;
+      color: #555;
+    }
+
+    /* 底部导航栏 */
+    .footer {
+      display: flex;
+      justify-content: space-around;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #fff;
+      padding: 10px 0;
+      box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .footer div {
+      text-align: center;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .footer div.active {
+      color: #00aaff;
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航栏 -->
+  <div class="header">
+    <div class="title">推荐</div>
+    <nav>
+      <span>乐库</span>
+      <span>听书</span>
+      <span>儿童</span>
+      <span>AI翻唱</span>
+    </nav>
+  </div>
+
+  <!-- 搜索栏 -->
+  <div class="search-bar">
+    <input type="text" placeholder="盛夏的果实 莫文蔚 专属推荐">
+  </div>
+
+  <!-- 主内容 -->
+  <div class="main">
+    <!-- 推荐卡片 -->
+    <div class="cards">
+      <div class="card">
+        <div class="tag">免费听</div>
+        <img src="https://via.placeholder.com/300x150" alt="猜你喜欢">
+        <p>Counting Stars - OneRepublic</p>
+      </div>
+      <div class="card">
+        <div class="tag">每日推荐</div>
+        <img src="https://via.placeholder.com/300x150" alt="每日推荐">
+        <p>卢东飞 - 泡芙美 Scarlet</p>
+      </div>
+    </div>
+
+    <!-- 听歌报告 -->
+    <div class="report">
+      <img src="https://via.placeholder.com/300x100" alt="听歌报告">
+    </div>
+
+    <!-- 个人推荐 -->
+    <div class="personal-section">
+      <div class="song">
+        <img src="https://via.placeholder.com/50" alt="歌曲">
+        <div class="info">勋章 - 鹿晗</div>
+      </div>
+      <div class="song">
+        <img src="https://via.placeholder.com/50" alt="歌曲">
+        <div class="info">答案 - 王源</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部导航栏 -->
+  <div class="footer">
+    <div class="active">首页</div>
+    <div>直播</div>
+    <div>歌房</div>
+    <div>我的</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "name": "gao",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "apple-music-player": "^0.0.14",
+    "axios": "^1.7.2",
+    "element-plus": "^2.7.7",
+    "gsap": "^3.13.0",
+    "video.js": "^7.21.6",
+    "vue": "^3.4.29",
+    "vue-router": "^4.0.0-beta.13",
+    "vue-video-player": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.11",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "less": "^4.2.0",
+    "sass": "^1.81.0",
+    "typescript": "^5.2.2",
+    "vite": "^5.3.1",
+    "vue-tsc": "^2.0.21"
+  }
+}
