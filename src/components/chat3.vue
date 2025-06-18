@@ -5,7 +5,11 @@ import { vOnClickOutside } from '@vueuse/components';
 import { useRoute } from 'vue-router';
 import { Upload } from '@element-plus/icons-vue';
 
-// ... script 部分与上一版完全相同，无需修改 ...
+// =================================================================
+// 1. 脚本逻辑更新
+// =================================================================
+
+// ... 状态定义 (保持不变) ...
 const availableModels = ref([]);
 const selectedModel = ref('');
 const userInput = ref('');
@@ -21,6 +25,7 @@ const imageFiles = ref([]);
 const imagePreviewUrls = ref([]); 
 const fileInput = ref(null); 
 
+// ... onMounted, toggleDropdown, selectOption, 加载模型等 (保持不变) ...
 onMounted(() => {
   const nameFromRoute = route.query.name;
   if (nameFromRoute) {
@@ -50,6 +55,7 @@ onMounted(async () => {
   }
 });
 const parseStreamChunk = (jsonString) => {
+  // ... (此函数内部逻辑不变)
   try {
     const parsed = JSON.parse(jsonString);
     if (parsed.choices && parsed.choices[0]?.delta !== undefined) {
@@ -79,15 +85,22 @@ const parseStreamChunk = (jsonString) => {
   }
 };
 
+
+// ★★★ [新增] 统一的图片处理辅助函数 ★★★
 const addImageFile = (file) => {
+  // 检查是否是图片文件
   if (!file || !file.type.startsWith('image/')) {
     error.value = "检测到非图片文件，已跳过。";
     return;
   }
+  
+  // 检查重复（对于粘贴的文件，name和size可能不唯一，但这是一个基础的屏障）
   if (imageFiles.value.some(f => f.name === file.name && f.size === file.size && f.name)) {
       return;
   }
+
   imageFiles.value.push(file);
+  
   const reader = new FileReader();
   reader.onload = (e) => {
     imagePreviewUrls.value.push(e.target.result);
@@ -95,38 +108,49 @@ const addImageFile = (file) => {
   reader.readAsDataURL(file);
 };
 
+
+// ★★★ [修改] 更新图片处理函数以使用新的辅助函数 ★★★
 const triggerFileInput = () => {
   fileInput.value.click();
 };
+
 const handleFileChange = (event) => {
   const files = event.target.files;
   if (!files) return;
+
   for (const file of files) {
-    addImageFile(file);
+    addImageFile(file); // 调用辅助函数
   }
+
   if(fileInput.value) {
     fileInput.value.value = '';
   }
 };
 
+// ★★★ [新增] 处理从剪贴板粘贴的事件 ★★★
 const handlePaste = (event) => {
   const items = event.clipboardData?.items;
   if (!items) return;
+
   let imageFound = false;
   for (const item of items) {
     if (item.type.startsWith('image/')) {
-      const file = item.getAsFile();
+      const file = item.getAsFile(); // 获取 Blob/File 对象
       if (file) {
-        addImageFile(file);
+        addImageFile(file); // 使用统一的辅助函数处理
         imageFound = true;
       }
     }
   }
+
+  // 如果粘贴板里有图片，就阻止默认的粘贴行为（如在输入框里显示文件名）
   if (imageFound) {
     event.preventDefault();
   }
 };
 
+
+// ... 其他函数 (removeImage, clearImages, sendMessage, renderMarkdownForDisplay, scrollToBottom) 保持不变 ...
 const removeImage = (index) => {
   imageFiles.value.splice(index, 1);
   imagePreviewUrls.value.splice(index, 1);
@@ -148,10 +172,12 @@ const sendMessage = async () => {
   }
 
   let messageContent = [];
+  
   messageContent.push({
     type: 'text',
     text: userInput.value || ' ' 
   });
+
   if (imageFiles.value.length > 0) {
     for (const url of imagePreviewUrls.value) {
       messageContent.push({
@@ -263,9 +289,11 @@ const scrollToBottom = () => {
     chatWindow.value.scrollTop = chatWindow.value.scrollHeight;
   }
 };
+
 </script>
 
 <template>
+  <!-- ... 页面其他部分 (aurora-background, header, main) 保持不变 ... -->
   <div class="aurora-background">
     <div class="aurora-shape shape-1"></div>
     <div class="aurora-shape shape-2"></div>
@@ -330,6 +358,7 @@ const scrollToBottom = () => {
       <span>{{ error }}</span>
     </div>
 
+    <!-- ★★★ [修改] 在 form 元素上添加 @paste 事件监听 ★★★ -->
     <footer class="input-area">
       <transition name="preview-fade">
         <div v-if="imagePreviewUrls.length > 0" class="image-preview-container">
@@ -340,7 +369,7 @@ const scrollToBottom = () => {
         </div>
       </transition>
 
-      <form @submit.prevent="sendMessage" class="input-form">
+      <form @submit.prevent="sendMessage" @paste="handlePaste" class="input-form">
         <button type="button" class="attach-button" @click="triggerFileInput" :disabled="isLoading">
         <el-icon color="#FF3333"><Upload /></el-icon>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
@@ -350,14 +379,7 @@ const scrollToBottom = () => {
         <input type="file" ref="fileInput" @change="handleFileChange" accept="image/*" style="display: none;" multiple />
 
         <div class="input-wrapper">
-          <input 
-            type="text" 
-            v-model="userInput" 
-            placeholder="Initiate dialogue, describe image, or Ctrl+V to paste" 
-            :disabled="isLoading" 
-            autocomplete="off"
-            @paste="handlePaste"
-          />
+          <input type="text" v-model="userInput" placeholder="Initiate dialogue, describe image, or Ctrl+V to paste" :disabled="isLoading" autocomplete="off" />
         </div>
         
         <button type="submit" class="send-button" :disabled="isLoading || (!userInput.trim() && imageFiles.length === 0)">
