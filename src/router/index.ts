@@ -171,6 +171,21 @@ const routes = [
     name: "NovelSimple",
     component: () => import("../components/NovelSimple.vue"),
   },
+   {
+    path: "/ques",
+    name: "ques",
+    component: () => import("../components/Ques.vue"),
+  },{
+    path: "/ques2",
+    name: "ques",
+    component: () => import("../components/chat.vue"),
+  },
+  {
+    path: '/auto-login',
+    name: 'AutoLogin',
+    component: () => import('../views/AutoLogin.vue')
+  }, 
+  
 ];
 //路由创建
 const router = createRouter({

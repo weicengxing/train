@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D我的世界</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #87CEEB;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 100;
+        }
+        #info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="controls">
+            <div><strong>控制说明：</strong></div>
+            <div>WASD - 移动</div>
+            <div>鼠标 - 调整视角</div>
+            <div>Space - 上升</div>
+            <div>Shift - 下降</div>
+            <div>鼠标滚轮 - 移动速度</div>
+        </div>
+        <div id="info">
+            <div>坐标: <span id="position">0, 0, 0</span></div>
+            <div>视角: <span id="rotation">0°, 0°</span></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // 游戏变量
+        let scene, camera, renderer, controls;
+        let world = {};
+        let player = {
+            position: { x: 0, y: 50, z: 0 },
+            rotation: { x: 0, y: 0 },
+            velocity: { x: 0, y: 0, z: 0 },
+            speed: 0.5,
+            jumpPower: 0.8,
+            onGround: false
+        };
+        let keys = {};
+        let mouse = { x: 0, y: 0, sensitivity: 0.002 };
+        let isPointerLocked = false;
+
+        // 方块材质
+        const blockTextures = {
+            grass: 0x90EE90,
+            dirt: 0x8B4513,
+            stone: 0x808080,
+            water: 0x4682B4,
+            sand: 0xF4A460,
+            wood: 0xD2691E,
+            leaves: 0x228B22
+        };
+
+        // 初始化游戏
+        function init() {
+            // 创建场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 100, 1000);
+
+            // 创建相机
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 50, 0);
+
+            // 创建渲染器
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true,
+                alpha: true,
+                powerPreference: "default"
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.BasicShadowMap;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            document.getElementById('gameContainer').appendChild(renderer.domElement);
+
+            // 添加光照
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 100, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 500;
+            directionalLight.shadow.camera.left = -200;
+            directionalLight.shadow.camera.right = 200;
+            directionalLight.shadow.camera.top = 200;
+            directionalLight.shadow.camera.bottom = -200;
+            scene.add(directionalLight);
+
+            // 生成世界
+            generateWorld();
+
+            // 设置事件监听
+            setupEventListeners();
+
+            // 显示性能信息
+            console.log(`世界生成完成！总方块数: ${Object.keys(world).length}`);
+
+            // 开始游戏循环
+            gameLoop();
+        }
+
+        // 生成世界
+        function generateWorld() {
+            const worldSize = 120; // 减小世界大小
+            const centerX = worldSize / 2;
+            const centerZ = worldSize / 2;
+
+            for (let x = -centerX; x < centerX; x += 4) { // 增加间距
+                for (let z = -centerZ; z < centerZ; z += 4) {
+                    const distance = Math.sqrt(x * x + z * z);
+                    const height = Math.max(1, 15 - distance * 0.08 + Math.sin(x * 0.08) * 2 + Math.cos(z * 0.08) * 2);
+                    
+                    // 只生成表面方块，减少垂直层数
+                    for (let y = 0; y < Math.min(height, 8); y++) { // 限制最大高度
+                        let blockType = 'stone';
+                        
+                        if (y === Math.floor(height) - 1) {
+                            if (distance < 25) {
+                                blockType = 'grass';
+                            } else if (distance < 45) {
+                                blockType = 'sand';
+                            } else {
+                                blockType = 'stone';
+                            }
+                        } else if (y > height - 3) {
+                            blockType = 'dirt';
+                        }
+
+                        createBlock(x, y * 3, z, blockType); // 增加垂直间距
+                    }
+
+                    // 减少树木生成
+                    if (Math.random() < 0.015 && distance < 35) {
+                        createTree(x, height * 3, z);
+                    }
+
+                    // 生成水
+                    if (height < 3 && distance > 60) {
+                        createBlock(x, height * 3, z, 'water');
+                    }
+                }
+            }
+        }
+
+        // 创建方块
+        function createBlock(x, y, z, type) {
+            const geometry = new THREE.BoxGeometry(3, 3, 3); // 增大方块尺寸
+            const material = new THREE.MeshBasicMaterial({ color: blockTextures[type] });
+            
+            if (type === 'water') {
+                material.transparent = true;
+                material.opacity = 0.7;
+            }
+
+            const block = new THREE.Mesh(geometry, material);
+            block.position.set(x, y, z);
+            
+            scene.add(block);
+
+            // 存储方块信息
+            const key = `${x},${y},${z}`;
+            world[key] = { type, mesh: block };
+        }
+
+        // 创建树木
+        function createTree(x, y, z) {
+            // 简化的树干
+            for (let i = 0; i < 3; i++) {
+                createBlock(x, y + i * 3, z, 'wood');
+            }
+
+            // 简化的树叶
+            for (let dx = -3; dx <= 3; dx += 3) {
+                for (let dz = -3; dz <= 3; dz += 3) {
+                    if (Math.random() < 0.6 && !(dx === 0 && dz === 0)) {
+                        createBlock(x + dx, y + 9, z + dz, 'leaves');
+                    }
+                }
+            }
+        }
+
+        // 设置事件监听
+        function setupEventListeners() {
+            // 键盘事件
+            document.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code === 'Space') e.preventDefault();
+            });
+
+            document.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+
+            // 鼠标事件
+            renderer.domElement.addEventListener('click', () => {
+                renderer.domElement.requestPointerLock();
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                isPointerLocked = document.pointerLockElement === renderer.domElement;
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isPointerLocked) {
+                    mouse.x += e.movementX * mouse.sensitivity;
+                    mouse.y += e.movementY * mouse.sensitivity;
+                    mouse.y = Math.max(-Math.PI/2, Math.min(Math.PI/2, mouse.y));
+                }
+            });
+
+            // 鼠标滚轮调整速度
+            renderer.domElement.addEventListener('wheel', (e) => {
+                player.speed = Math.max(0.1, Math.min(2, player.speed + e.deltaY * -0.001));
+                e.preventDefault();
+            });
+
+            // 窗口大小改变
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // 更新玩家
+        function updatePlayer() {
+            // 处理输入
+            const forward = new THREE.Vector3(0, 0, -1);
+            const right = new THREE.Vector3(1, 0, 0);
+            
+            forward.applyQuaternion(camera.quaternion);
+            right.applyQuaternion(camera.quaternion);
+            
+            forward.y = 0;
+            right.y = 0;
+            forward.normalize();
+            right.normalize();
+
+            // 移动
+            if (keys['KeyW']) {
+                player.velocity.x += forward.x * player.speed * 0.1;
+                player.velocity.z += forward.z * player.speed * 0.1;
+            }
+            if (keys['KeyS']) {
+                player.velocity.x -= forward.x * player.speed * 0.1;
+                player.velocity.z -= forward.z * player.speed * 0.1;
+            }
+            if (keys['KeyA']) {
+                player.velocity.x -= right.x * player.speed * 0.1;
+                player.velocity.z -= right.z * player.speed * 0.1;
+            }
+            if (keys['KeyD']) {
+                player.velocity.x += right.x * player.speed * 0.1;
+                player.velocity.z += right.z * player.speed * 0.1;
+            }
+
+            // 垂直移动
+            if (keys['Space']) {
+                player.velocity.y += 0.1;
+            }
+            if (keys['ShiftLeft']) {
+                player.velocity.y -= 0.1;
+            }
+
+            // 应用摩擦力
+            player.velocity.x *= 0.8;
+            player.velocity.z *= 0.8;
+            player.velocity.y *= 0.9;
+
+            // 更新位置
+            player.position.x += player.velocity.x;
+            player.position.y += player.velocity.y;
+            player.position.z += player.velocity.z;
+
+            // 防止掉出世界
+            player.position.y = Math.max(5, player.position.y);
+
+            // 更新相机
+            camera.position.set(
+                player.position.x,
+                player.position.y,
+                player.position.z
+            );
+
+            // 更新相机旋转
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = -mouse.x;
+            camera.rotation.x = -mouse.y;
+
+            // 更新UI
+            document.getElementById('position').textContent = 
+                `${Math.round(player.position.x)}, ${Math.round(player.position.y)}, ${Math.round(player.position.z)}`;
+            document.getElementById('rotation').textContent = 
+                `${Math.round(mouse.x * 180 / Math.PI)}°, ${Math.round(mouse.y * 180 / Math.PI)}°`;
+        }
+
+        // 游戏循环
+        function gameLoop() {
+            updatePlayer();
+            renderer.render(scene, camera);
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 启动游戏
+        init();
+    </script>
+</body>
+</html>

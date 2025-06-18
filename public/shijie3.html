@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D我的世界 - 生存与创造</title>
+    <style>
+        body { margin: 0; padding: 0; background: #87CEEB; font-family: Arial, sans-serif; overflow: hidden; }
+        #gameContainer { position: relative; width: 100vw; height: 100vh; cursor: crosshair; }
+        #controls { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 15px; border-radius: 8px; font-size: 13px; z-index: 100; max-width: 220px; }
+        #info { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 8px; font-size: 12px; z-index: 100; }
+        #biome-info { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 15px; border-radius: 8px; font-size: 13px; z-index: 100; }
+        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: white; padding: 20px; border-radius: 8px; display: none; z-index: 200; text-align: center; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background-color: rgba(255,255,255,0.7); transform: translate(-50%, -50%); z-index: 99; border-radius: 50%; }
+        #mode-display { font-weight: bold; margin-top: 8px; }
+        #mode-creative { color: #87CEFA; }
+        #mode-survival { color: #FFD700; }
+        .biome-plains { color: #90EE90; } .biome-forest { color: #228B22; } .biome-mountains { color: #A0A0A0; } .biome-desert { color: #F4A460; } .biome-ocean { color: #4682B4; } .biome-tundra { color: #E0E0E0; }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="crosshair"></div>
+        <div id="controls">
+            <div><strong>控制说明：</strong></div>
+            <div>WASD - 移动</div>
+            <div>鼠标 - 调整视角</div>
+            <div>Space - 上升 / 跳跃</div>
+            <div>Shift - 下降</div>
+            <div>R - 切换模式</div>
+            <div id="mode-display">模式: <span id="mode-text" class="mode-creative">创造</span></div>
+        </div>
+        <div id="biome-info">
+            <div>生物群落: <span id="current-biome" class="biome-plains">平原</span></div>
+            <div>海拔: <span id="altitude">0m</span></div>
+        </div>
+        <div id="info">
+            <div>坐标: <span id="position">0, 0, 0</span></div>
+            <div>区块: <span id="chunk">0, 0</span></div>
+            <div>实体数: <span id="entity-count">0</span></div>
+        </div>
+        <div id="loading">
+            <div>🌍 正在生成世界...</div>
+            <div style="font-size: 11px; margin-top: 5px;">创造山脉、海洋和生物</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // --- 游戏状态与模式 ---
+        let gameMode = 'creative'; // 'creative' or 'survival'
+
+        // --- 物理常量 ---
+        const GRAVITY = 30.0;
+        const JUMP_STRENGTH = 12.0;
+        const PLAYER_HEIGHT = 1.8 * 3; // 玩家身高
+        const PLAYER_EYE_LEVEL = 1.6 * 3; // 玩家视线高度
+
+        // --- 游戏变量 ---
+        let scene, camera, renderer;
+        let player = {
+            position: new THREE.Vector3(0, 120, 0),
+            rotation: { x: 0, y: 0 },
+            velocity: new THREE.Vector3(0, 0, 0),
+            onGround: false,
+            inWater: false,
+            speed: 1.2
+        };
+        let keys = {};
+        let mouse = { sensitivity: 0.002 };
+        let isPointerLocked = false;
+        
+        // --- 系统变量 ---
+        const CHUNK_SIZE_X = 16, CHUNK_SIZE_Y = 128, CHUNK_SIZE_Z = 16;
+        const RENDER_DISTANCE = 5, UNLOAD_DISTANCE = 7;
+        let chunks = new Map();
+        let entities = new Map();
+        let lastPlayerChunk = { x: 0, z: 0 };
+        const BLOCK_SIZE = 3;
+        let uiUpdateCounter = 0;
+
+        // --- 方块与生物群落定义 ---
+        const blockData = {
+            air:    { id: 0, transparent: true },
+            grass:  { id: 1, color: 0x90EE90 },
+            dirt:   { id: 2, color: 0x8B4513 },
+            stone:  { id: 3, color: 0x696969 },
+            water:  { id: 4, color: 0x1E90FF, transparent: true, opacity: 0.7 },
+            sand:   { id: 5, color: 0xF4A460 },
+            wood:   { id: 6, color: 0xD2691E },
+            leaves: { id: 7, color: 0x228B22, transparent: true, opacity: 0.8 },
+            snow:   { id: 8, color: 0xFFFAFA },
+            rock:   { id: 9, color: 0x555555 },
+        };
+        const blockTypes = Object.fromEntries(Object.entries(blockData).map(([name, data]) => [name, data.id]));
+        const blockIds = Object.fromEntries(Object.values(blockData).map(data => [data.id, data]));
+        const biomes = {
+            OCEAN: { name: '深海', color: 'biome-ocean' },
+            BEACH: { name: '海滩', color: 'biome-desert' },
+            PLAINS: { name: '平原', color: 'biome-plains' },
+            FOREST: { name: '森林', color: 'biome-forest' },
+            MOUNTAINS: { name: '山脉', color: 'biome-mountains' },
+            DESERT: { name: '沙漠', color: 'biome-desert' },
+            TUNDRA: { name: '苔原', color: 'biome-tundra' }
+        };
+
+        // --- 地形生成 ---
+        function noise(x, z, scale=1, octaves=1) {
+            let value = 0, amplitude = 1, frequency = 0.01 * scale;
+            for (let i = 0; i < octaves; i++) {
+                value += Math.sin(x * frequency) * Math.cos(z * frequency) * amplitude;
+                frequency *= 2; amplitude *= 0.5;
+            }
+            return value;
+        }
+        function getTerrainHeight(x, z) {
+            const baseHeight = noise(x, z, 1.2, 4) * 8;
+            const mountainNoise = noise(x * 0.2, z * 0.2, 0.6, 5);
+            const mountainHeight = Math.max(0, mountainNoise) * 70; 
+            const oceanDepth = Math.max(0, -noise(x, z, 1.5, 2)) * 20;
+            return 32 + baseHeight + mountainHeight - oceanDepth;
+        }
+        function getBiome(x, z, height) {
+            const temp = noise(x, z, 0.3, 2) * 20 + 15;
+            const humidity = noise(x + 1000, z + 1000, 0.4, 2);
+            if (height < 30) return biomes.OCEAN;
+            if (height < 34) return biomes.BEACH;
+            if (height > 80) return biomes.MOUNTAINS;
+            if (temp > 30 && humidity < -0.3) return biomes.DESERT;
+            if (temp < 5) return biomes.TUNDRA;
+            if (humidity > 0.2) return biomes.FOREST;
+            return biomes.PLAINS;
+        }
+        
+        // --- 动物种类与生成 ---
+        function createSpotTexture(c1, c2) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const context = canvas.getContext('2d');
+            context.fillStyle = `#${new THREE.Color(c2).getHexString()}`;
+            context.fillRect(0, 0, 64, 64);
+            context.fillStyle = `#${new THREE.Color(c1).getHexString()}`;
+            for (let i = 0; i < 20; i++) {
+                context.beginPath();
+                context.arc(Math.random() * 64, Math.random() * 64, Math.random() * 5 + 2, 0, Math.PI * 2);
+                context.fill();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createStripeTexture(c1, c2) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const context = canvas.getContext('2d');
+            context.fillStyle = `#${new THREE.Color(c1).getHexString()}`;
+            context.fillRect(0, 0, 64, 64);
+            context.fillStyle = `#${new THREE.Color(c2).getHexString()}`;
+            for (let i = 0; i < 64; i += 8) {
+                context.fillRect(i, 0, 4, 64);
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function getBiomeAnimals(biome) {
+            if (biome === biomes.PLAINS) return ['cow', 'sheep', 'chicken'];
+            if (biome === biomes.FOREST) return ['deer', 'tiger'];
+            if (biome === biomes.TUNDRA || biome === biomes.MOUNTAINS) return ['sheep'];
+            if (biome === biomes.DESERT) return ['elephant']; // Elephants in desert/savannah
+            return [];
+        }
+
+        function createAnimal(x, y, z, type) {
+            const group = new THREE.Group();
+            let bodyMaterial, headMaterial;
+
+            switch (type) {
+                case 'cow':
+                    bodyMaterial = new THREE.MeshLambertMaterial({ map: createSpotTexture(0x444444, 0xffffff) });
+                    group.add(new THREE.Mesh(new THREE.BoxGeometry(4, 3, 7), bodyMaterial));
+                    group.add(new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), bodyMaterial)).position.set(0, 1.5, 4);
+                    break;
+                case 'sheep':
+                    bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xebebeb });
+                    headMaterial = new THREE.MeshLambertMaterial({ color: 0xffd1b5 });
+                    group.add(new THREE.Mesh(new THREE.BoxGeometry(3.5, 3.5, 5.5), bodyMaterial)); // Wool
+                    group.add(new THREE.Mesh(new THREE.BoxGeometry(2, 2, 3), headMaterial)).position.set(0, 0.5, 3.5);
+                    break;
+                case 'chicken':
+                    bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+                    const beakMaterial = new THREE.MeshLambertMaterial({ color: 0xffa500 });
+                    group.add(new THREE.Mesh(new THREE.BoxGeometry(2, 2, 3), bodyMaterial));
+                    group.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 1), beakMaterial)).position.set(0, 0.5, 2);
+                    group.scale.set(0.7, 0.7, 0.7);
+                    break;
+                case 'tiger':
+                    bodyMaterial = new THREE.MeshLambertMaterial({ map: createStripeTexture(0xffa500, 0x000000) });
+                    group.add(new THREE.Mesh(new THREE.BoxGeometry(3, 3, 9), bodyMaterial));
+                    group.add(new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.5, 2.5), bodyMaterial)).position.set(0, 1, 5);
+                    break;
+                case 'elephant':
+                    bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x9e9e9e });
+                    const tuskMaterial = new THREE.MeshLambertMaterial({ color: 0xf0f0f0 });
+                    group.add(new THREE.Mesh(new THREE.BoxGeometry(6, 6, 10), bodyMaterial));
+                    const head = new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), bodyMaterial);
+                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.5, 4), bodyMaterial);
+                    trunk.position.set(0, -3, 0);
+                    head.add(trunk);
+                    head.position.set(0, 2, 6);
+                    group.add(head);
+                    const tusk1 = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.1, 2), tuskMaterial);
+                    tusk1.position.set(-1.5, -1, 7.5); tusk1.rotation.x = -Math.PI / 4;
+                    const tusk2 = tusk1.clone(); tusk2.position.x = 1.5;
+                    group.add(tusk1, tusk2);
+                    break;
+                default: // deer
+                    bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                    group.add(new THREE.Mesh(new THREE.BoxGeometry(3, 3, 8), bodyMaterial));
+                    group.add(new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.5, 2.5), bodyMaterial)).position.set(0, 1, 4.5);
+            }
+            const legMaterial = new THREE.MeshLambertMaterial({ color: 0x543210 });
+            for (let i = 0; i < 4; i++) {
+                const leg = new THREE.Mesh(new THREE.BoxGeometry(1, 4, 1), legMaterial);
+                leg.position.set(i < 2 ? -1.5 : 1.5, -3, i % 2 === 0 ? 3 : -3);
+                group.add(leg);
+            }
+            group.position.set(x, y, z);
+            group.userData = {
+                type: type,
+                velocity: new THREE.Vector3(0,0,0), onGround: false, inWater: false,
+                moveSpeed: (0.5 + Math.random() * 0.5),
+                direction: Math.random() * Math.PI * 2,
+                changeTimer: Math.random() * 5
+            };
+            return group;
+        }
+        
+        // --- 物理与碰撞辅助函数 ---
+        function getBlockAtWorldPos(worldPos) {
+            const blockX = Math.floor(worldPos.x / BLOCK_SIZE);
+            const blockY = Math.floor(worldPos.y / BLOCK_SIZE);
+            const blockZ = Math.floor(worldPos.z / BLOCK_SIZE);
+
+            const chunkX = Math.floor(blockX / CHUNK_SIZE_X);
+            const chunkZ = Math.floor(blockZ / CHUNK_SIZE_Z);
+            
+            const chunk = chunks.get(getChunkKey(chunkX, chunkZ));
+            if (!chunk) return blockIds[0]; // Air if chunk not loaded
+
+            const localX = (blockX % CHUNK_SIZE_X + CHUNK_SIZE_X) % CHUNK_SIZE_X;
+            const localY = blockY;
+            const localZ = (blockZ % CHUNK_SIZE_Z + CHUNK_SIZE_Z) % CHUNK_SIZE_Z;
+
+            if (localY < 0 || localY >= CHUNK_SIZE_Y) return blockIds[0];
+
+            const blockId = chunk.blocks[localY * CHUNK_SIZE_X * CHUNK_SIZE_Z + localZ * CHUNK_SIZE_X + localX];
+            return blockIds[blockId];
+        }
+
+        // --- 区块生成与管理 ---
+        function generateChunk(chunkX, chunkZ) {
+            const chunkKey = getChunkKey(chunkX, chunkZ);
+            if (chunks.has(chunkKey)) return chunks.get(chunkKey);
+            const chunk = {
+                x: chunkX, z: chunkZ,
+                blocks: new Uint8Array(CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z).fill(blockTypes.air),
+                mesh: null, transparentMesh: null,
+                entities: [], isLoaded: false
+            };
+            const worldStartX = chunkX * CHUNK_SIZE_X;
+            const worldStartZ = chunkZ * CHUNK_SIZE_Z;
+            for (let x = 0; x < CHUNK_SIZE_X; x++) {
+                for (let z = 0; z < CHUNK_SIZE_Z; z++) {
+                    const height = getTerrainHeight(worldStartX + x, worldStartZ + z);
+                    const biome = getBiome(worldStartX + x, worldStartZ + z, height);
+                    for (let y = 0; y < CHUNK_SIZE_Y; y++) {
+                        let blockType = blockTypes.air;
+                        if (y < height) {
+                            if (y < 32) blockType = blockTypes.water;
+                            else if (y < height - 4) blockType = blockTypes.stone;
+                            else if (y < height - 1) blockType = (biome === biomes.BEACH || biome === biomes.DESERT) ? blockTypes.sand : blockTypes.dirt;
+                            else {
+                                if (y < 34 && biome !== biomes.OCEAN) blockType = blockTypes.sand;
+                                else if (biome === biomes.DESERT) blockType = blockTypes.sand;
+                                else if (biome === biomes.MOUNTAINS && height > 90) blockType = blockTypes.rock;
+                                else if (biome === biomes.TUNDRA) blockType = blockTypes.snow;
+                                else blockType = blockTypes.grass;
+                            }
+                        }
+                        chunk.blocks[y * CHUNK_SIZE_X * CHUNK_SIZE_Z + z * CHUNK_SIZE_X + x] = blockType;
+                    }
+                }
+            }
+            for (let x = 0; x < CHUNK_SIZE_X; x++) {
+                for (let z = 0; z < CHUNK_SIZE_Z; z++) {
+                    let surfaceY = -1;
+                    for (let y = CHUNK_SIZE_Y - 1; y >= 0; y--) {
+                        const blockId = chunk.blocks[y * CHUNK_SIZE_X * CHUNK_SIZE_Z + z * CHUNK_SIZE_X + x];
+                        if (blockId !== blockTypes.air && !blockIds[blockId].transparent) { surfaceY = y; break; }
+                    }
+                    if (surfaceY === -1) continue;
+                    const worldX = (worldStartX + x) * BLOCK_SIZE;
+                    const worldY = (surfaceY + 1) * BLOCK_SIZE;
+                    const worldZ = (worldStartZ + z) * BLOCK_SIZE;
+                    const biome = getBiome(worldStartX + x, worldStartZ + z, surfaceY);
+                    if (Math.random() < 0.01) { // Animal density
+                        const animalTypes = getBiomeAnimals(biome);
+                        if (animalTypes.length > 0) {
+                            const animalType = animalTypes[Math.floor(Math.random() * animalTypes.length)];
+                            const animal = createAnimal(worldX, worldY, worldZ, animalType);
+                            const entityKey = `${chunkKey}_${chunk.entities.length}`;
+                            chunk.entities.push({ key: entityKey, model: animal });
+                            entities.set(entityKey, animal);
+                        }
+                    }
+                }
+            }
+            chunk.mesh = createChunkMesh(chunk, false);
+            chunk.transparentMesh = createChunkMesh(chunk, true);
+            chunks.set(chunkKey, chunk);
+            return chunk;
+        }
+        function createChunkMesh(chunk, forTransparent) {
+            const positions = [], normals = [], colors = [], indices = [];
+            const getBlock = (x, y, z) => {
+                if (x < 0 || x >= CHUNK_SIZE_X || y < 0 || y >= CHUNK_SIZE_Y || z < 0 || z >= CHUNK_SIZE_Z) return blockTypes.air;
+                return chunk.blocks[y * CHUNK_SIZE_X * CHUNK_SIZE_Z + z * CHUNK_SIZE_X + x];
+            };
+            for (let y = 0; y < CHUNK_SIZE_Y; y++) {
+                for (let z = 0; z < CHUNK_SIZE_Z; z++) {
+                    for (let x = 0; x < CHUNK_SIZE_X; x++) {
+                        const blockId = getBlock(x, y, z);
+                        const block = blockIds[blockId];
+                        if (block.id === blockTypes.air || ((forTransparent && !block.transparent) || (!forTransparent && block.transparent))) continue;
+                        const faces = [
+                            { dir: [ 1,  0,  0], corners: [ [1, 1, 0], [1, 0, 0], [1, 1, 1], [1, 0, 1] ] }, { dir: [-1,  0,  0], corners: [ [0, 1, 1], [0, 0, 1], [0, 1, 0], [0, 0, 0] ] },
+                            { dir: [ 0,  1,  0], corners: [ [0, 1, 1], [1, 1, 1], [0, 1, 0], [1, 1, 0] ] }, { dir: [ 0, -1,  0], corners: [ [0, 0, 0], [1, 0, 0], [0, 0, 1], [1, 0, 1] ] },
+                            { dir: [ 0,  0,  1], corners: [ [1, 1, 1], [1, 0, 1], [0, 1, 1], [0, 0, 1] ] }, { dir: [ 0,  0, -1], corners: [ [0, 1, 0], [0, 0, 0], [1, 1, 0], [1, 0, 0] ] },
+                        ];
+                        for (const { dir, corners } of faces) {
+                            const neighbor = blockIds[getBlock(x + dir[0], y + dir[1], z + dir[2])];
+                            if (neighbor.transparent) {
+                                const baseIndex = positions.length / 3;
+                                const c = new THREE.Color(block.color);
+                                for (const corner of corners) {
+                                    positions.push((x + corner[0]) * BLOCK_SIZE, (y + corner[1]) * BLOCK_SIZE, (z + corner[2]) * BLOCK_SIZE);
+                                    normals.push(dir[0], dir[1], dir[2]);
+                                    colors.push(c.r, c.g, c.b);
+                                }
+                                indices.push(baseIndex, baseIndex + 1, baseIndex + 2, baseIndex + 2, baseIndex + 1, baseIndex + 3);
+                            }
+                        }
+                    }
+                }
+            }
+            if (positions.length === 0) return null;
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geometry.setIndex(indices);
+            const material = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: forTransparent, opacity: forTransparent ? 0.7 : 1.0 });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(chunk.x * CHUNK_SIZE_X * BLOCK_SIZE, 0, chunk.z * CHUNK_SIZE_Z * BLOCK_SIZE);
+            return mesh;
+        }
+        function loadChunk(chunk) {
+            if (chunk.isLoaded) return;
+            if (chunk.mesh) scene.add(chunk.mesh);
+            if (chunk.transparentMesh) scene.add(chunk.transparentMesh);
+            chunk.entities.forEach(entity => scene.add(entity.model));
+            chunk.isLoaded = true;
+        }
+        function unloadChunk(chunk) {
+            if (!chunk.isLoaded) return;
+            if (chunk.mesh) scene.remove(chunk.mesh);
+            if (chunk.transparentMesh) scene.remove(chunk.transparentMesh);
+            chunk.entities.forEach(entity => scene.remove(entity.model));
+            chunk.isLoaded = false;
+        }
+        function deleteChunk(chunkKey) {
+            const chunk = chunks.get(chunkKey);
+            if (chunk) {
+                unloadChunk(chunk);
+                if (chunk.mesh) chunk.mesh.geometry.dispose();
+                if (chunk.transparentMesh) chunk.transparentMesh.geometry.dispose();
+                chunk.entities.forEach(entity => {
+                    entities.delete(entity.key);
+                    entity.model.traverse(child => {
+                        if (child.isMesh) {
+                            child.geometry.dispose();
+                            if(child.material.map) child.material.map.dispose();
+                            child.material.dispose();
+                        }
+                    });
+                });
+                chunks.delete(chunkKey);
+            }
+        }
+        
+        // --- 主循环与更新 ---
+        const clock = new THREE.Clock();
+        function gameLoop() {
+            requestAnimationFrame(gameLoop);
+            const delta = clock.getDelta();
+            if (gameMode === 'creative') updatePlayerCreative(delta);
+            else updatePlayerSurvival(delta);
+            updateAnimals(delta);
+            updateChunks();
+            renderer.render(scene, camera);
+            uiUpdateCounter++;
+            if (uiUpdateCounter > 20) updateUI();
+        }
+
+        function updatePlayerCreative(delta) {
+            const speed = player.speed * BLOCK_SIZE * 5 * delta;
+            const moveDirection = new THREE.Vector3(0,0,0);
+            if (keys['KeyW']) moveDirection.z -= 1; if (keys['KeyS']) moveDirection.z += 1;
+            if (keys['KeyA']) moveDirection.x -= 1; if (keys['KeyD']) moveDirection.x += 1;
+            if (moveDirection.length() > 0) {
+                moveDirection.normalize().applyQuaternion(camera.quaternion);
+                player.position.addScaledVector(moveDirection, speed);
+            }
+            if (keys['Space']) player.position.y += speed;
+            if (keys['ShiftLeft']) player.position.y -= speed;
+            camera.position.copy(player.position).add(new THREE.Vector3(0, PLAYER_EYE_LEVEL, 0));
+        }
+
+        function updatePlayerSurvival(delta) {
+            const feetPos = player.position.clone();
+            const headPos = player.position.clone().add(new THREE.Vector3(0, PLAYER_EYE_LEVEL, 0));
+            const groundBlock = getBlockAtWorldPos(feetPos.add(new THREE.Vector3(0,-0.1,0)));
+            const headBlock = getBlockAtWorldPos(headPos);
+            player.onGround = !groundBlock.transparent;
+            player.inWater = groundBlock.id === blockTypes.water || headBlock.id === blockTypes.water;
+            if (player.inWater) {
+                player.velocity.y -= GRAVITY * 0.3 * delta;
+                if (player.velocity.y < -2) player.velocity.y = -2;
+            } else {
+                player.velocity.y -= GRAVITY * delta;
+            }
+            const speed = player.speed * (player.inWater ? 40 : 80) * delta;
+            const moveDirection = new THREE.Vector3(
+                (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] ? 1 : 0), 0,
+                (keys['KeyS'] ? 1 : 0) - (keys['KeyW'] ? 1 : 0)
+            );
+            if (moveDirection.length() > 0) {
+                moveDirection.normalize().applyQuaternion(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, camera.rotation.y, 0, 'YXZ')));
+                player.velocity.x = moveDirection.x * speed;
+                player.velocity.z = moveDirection.z * speed;
+            } else {
+                player.velocity.x = 0;
+                player.velocity.z = 0;
+            }
+            if (keys['Space'] && (player.onGround || player.inWater)) {
+                player.velocity.y = JUMP_STRENGTH * (player.inWater ? 0.7 : 1.0);
+            }
+            let displacement = player.velocity.clone().multiplyScalar(delta);
+            let nextYPos = player.position.clone().add(new THREE.Vector3(0, displacement.y, 0));
+            if (!getBlockAtWorldPos(nextYPos).transparent) {
+                player.velocity.y = 0;
+                displacement.y = 0;
+            }
+            let nextXPos = player.position.clone().add(new THREE.Vector3(displacement.x, PLAYER_HEIGHT * 0.5, 0));
+            if (!getBlockAtWorldPos(nextXPos).transparent) displacement.x = 0;
+            let nextZPos = player.position.clone().add(new THREE.Vector3(0, PLAYER_HEIGHT * 0.5, displacement.z));
+            if (!getBlockAtWorldPos(nextZPos).transparent) displacement.z = 0;
+            player.position.add(displacement);
+            camera.position.copy(player.position).add(new THREE.Vector3(0, PLAYER_EYE_LEVEL, 0));
+        }
+
+        function updateAnimals(delta) {
+             entities.forEach(animal => {
+                const data = animal.userData;
+                const feetPos = animal.position.clone();
+                const groundBlock = getBlockAtWorldPos(feetPos.add(new THREE.Vector3(0, -0.1, 0)));
+                data.onGround = !groundBlock.transparent;
+                data.inWater = groundBlock.id === blockTypes.water;
+                if (data.onGround || data.inWater) {
+                    if (data.onGround) data.velocity.y = 0;
+                    data.changeTimer += delta;
+                    if (data.changeTimer > 5) {
+                        data.direction = Math.random() * Math.PI * 2;
+                        data.changeTimer = 0;
+                        if(data.onGround && Math.random() < 0.2) data.velocity.y = JUMP_STRENGTH * 0.5; // Random jump
+                    }
+                    const speed = data.moveSpeed * (data.inWater ? 0.5 : 1.0);
+                    const moveX = Math.cos(data.direction) * speed;
+                    const moveZ = Math.sin(data.direction) * speed;
+                    data.velocity.x = moveX;
+                    data.velocity.z = moveZ;
+                    animal.rotation.y = data.direction + Math.PI / 2;
+                } else {
+                    data.velocity.y -= GRAVITY * delta;
+                }
+                const displacement = data.velocity.clone().multiplyScalar(delta);
+                const nextPos = animal.position.clone().add(displacement);
+                if (!getBlockAtWorldPos(nextPos).transparent) {
+                    // Simple collision: stop movement
+                } else {
+                    animal.position.add(displacement);
+                }
+             });
+        }
+
+        function updateChunks() {
+            const playerChunkCoords = getChunkCoords(player.position.x, player.position.z);
+            if (playerChunkCoords.x !== lastPlayerChunk.x || playerChunkCoords.z !== lastPlayerChunk.z) {
+                lastPlayerChunk = playerChunkCoords;
+                if (!isGenerating) {
+                    isGenerating = true;
+                    document.getElementById('loading').style.display = 'block';
+                    setTimeout(() => {
+                        generateAroundPlayer(playerChunkCoords.x, playerChunkCoords.z);
+                        cleanupDistantChunks(playerChunkCoords.x, playerChunkCoords.z);
+                        document.getElementById('loading').style.display = 'none';
+                        isGenerating = false;
+                    }, 50);
+                }
+            }
+        }
+        function getChunkCoords(x, z) { return { x: Math.floor(x / (CHUNK_SIZE_X * BLOCK_SIZE)), z: Math.floor(z / (CHUNK_SIZE_Z * BLOCK_SIZE)) }; }
+        function getChunkKey(chunkX, chunkZ) { return `${chunkX},${chunkZ}`; }
+        function generateAroundPlayer(centerX, centerZ) {
+            for (let x = centerX - RENDER_DISTANCE; x <= centerX + RENDER_DISTANCE; x++) {
+                for (let z = centerZ - RENDER_DISTANCE; z <= centerZ + RENDER_DISTANCE; z++) {
+                    if (Math.max(Math.abs(x - centerX), Math.abs(z - centerZ)) <= RENDER_DISTANCE) {
+                        loadChunk(generateChunk(x, z));
+                    }
+                }
+            }
+        }
+        function cleanupDistantChunks(centerX, centerZ) {
+            const chunksToDelete = [];
+            chunks.forEach((chunk, key) => {
+                const distance = Math.max(Math.abs(chunk.x - centerX), Math.abs(chunk.z - centerZ));
+                if (distance > UNLOAD_DISTANCE) chunksToDelete.push(key);
+                else if (distance > RENDER_DISTANCE) unloadChunk(chunk);
+            });
+            chunksToDelete.forEach(key => deleteChunk(key));
+        }
+        
+        // --- 初始化与事件监听 ---
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 50, CHUNK_SIZE_X * BLOCK_SIZE * RENDER_DISTANCE * 0.9);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, CHUNK_SIZE_X * BLOCK_SIZE * RENDER_DISTANCE);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('gameContainer').appendChild(renderer.domElement);
+            const ambientLight = new THREE.AmbientLight(0xcccccc, 0.7);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            directionalLight.position.set(100, 150, 80);
+            scene.add(directionalLight);
+            generateAroundPlayer(0, 0);
+            setupEventListeners();
+            updateUI();
+            gameLoop();
+        }
+        function updateUI() {
+            const playerChunk = getChunkCoords(player.position.x, player.position.z);
+            let loadedCount = 0;
+            chunks.forEach(chunk => { if (chunk.isLoaded) loadedCount++; });
+            const currentBiome = getBiome(player.position.x / BLOCK_SIZE, player.position.z / BLOCK_SIZE, player.position.y / BLOCK_SIZE);
+            const biomeElement = document.getElementById('current-biome');
+            biomeElement.textContent = currentBiome.name;
+            biomeElement.className = currentBiome.color;
+            document.getElementById('chunk').textContent = `${playerChunk.x}, ${playerChunk.z}`;
+            document.getElementById('entity-count').textContent = `${entities.size}`;
+            document.getElementById('altitude').textContent = `${Math.round(player.position.y / BLOCK_SIZE)}m`;
+            document.getElementById('position').textContent = `${player.position.x.toFixed(0)}, ${player.position.y.toFixed(0)}, ${player.position.z.toFixed(0)}`;
+        }
+        function setupEventListeners() {
+            document.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code === 'KeyR') {
+                    gameMode = (gameMode === 'creative') ? 'survival' : 'creative';
+                    const modeText = document.getElementById('mode-text');
+                    if (gameMode === 'creative') {
+                        modeText.textContent = '创造';
+                        modeText.className = 'mode-creative';
+                        player.velocity.set(0,0,0);
+                    } else {
+                        modeText.textContent = '生存';
+                        modeText.className = 'mode-survival';
+                    }
+                }
+            });
+            document.addEventListener('keyup', (e) => { keys[e.code] = false; });
+            renderer.domElement.addEventListener('click', () => { renderer.domElement.requestPointerLock(); });
+            document.addEventListener('pointerlockchange', () => { isPointerLocked = document.pointerLockElement === renderer.domElement; });
+            document.addEventListener('mousemove', (e) => {
+                if (isPointerLocked) {
+                    camera.rotation.y -= e.movementX * mouse.sensitivity;
+                    camera.rotation.x -= e.movementY * mouse.sensitivity;
+                    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+                }
+            });
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+        init();
+    </script>
+</body>
+</html>

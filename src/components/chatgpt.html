@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT 4o 精细复刻</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background-color: #FFFFFF;
+            overflow: hidden;
+            color: #1C1C1E; /* 更接近 iOS 系统深色文本 */
+        }
+
+        .sidebar {
+            width: 260px;
+            background-color: #0D0D0D; /* 纯黑に近い背景 */
+            color: #F2F2F7; /* 更亮的侧边栏文本色 */
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            flex-shrink: 0;
+            border-right: 1px solid #2D2D2F; /* 侧边栏与主内容区分割线 */
+        }
+
+        .sidebar-header {
+            padding: 10px 8px 10px 16px; /* 调整内边距以匹配截图 */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 52px; /* 根据截图调整的精确高度 */
+        }
+
+        .sidebar-header .logo svg { /* OpenAI Logo */
+            width: 32px;
+            height: 32px;
+            color: #fff;
+        }
+
+        .sidebar-header .collapse-icon {
+            cursor: pointer;
+            padding: 8px;
+            color: #8A8A8E; /* 折叠图标颜色 */
+            border-radius: 6px;
+        }
+        .sidebar-header .collapse-icon svg {
+             width: 20px; height: 20px; /* 增大图标 */
+        }
+        .sidebar-header .collapse-icon:hover {
+            background-color: #2C2C2E; /* 悬停背景色 */
+            color: #fff;
+        }
+
+        .sidebar-action, .sidebar-link, .sidebar-project {
+            display: flex;
+            align-items: center;
+            padding: 9px 16px;
+            cursor: pointer;
+            font-size: 0.9rem; /* 14.4px for 16px base */
+            font-weight: 400; /* 标准字重 */
+            border-radius: 8px;
+            margin: 2px 8px;
+            color: #E5E5EA; /* 侧边栏项目文本颜色 */
+        }
+        .sidebar-action:hover, .sidebar-link:hover, .sidebar-project:hover, .history-item:hover, .sidebar-bottom-item:hover {
+            background-color: #2C2C2E; /* 统一悬停背景色 */
+        }
+        .sidebar-action svg, .sidebar-link svg, .sidebar-project svg, .sidebar-bottom-item svg {
+            margin-right: 14px;
+            width: 19px; /* 图标尺寸微调 */
+            height: 19px;
+            opacity: 0.85; /* 图标透明度 */
+            color: #E5E5EA; /* 确保图标颜色与文本一致或略浅 */
+        }
+
+        .history-section {
+            padding: 0 8px;
+            margin-top: 10px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .history-section-title {
+            font-size: 0.75rem; /* 12px */
+            color: #8A8A8E;
+            padding: 10px 10px 6px; /* 标题内边距 */
+            font-weight: 500; /* 标题字重 */
+            text-transform: uppercase; /* 保持大写 */
+        }
+        .history-item {
+            padding: 9px 12px;
+            font-size: 0.875rem; /* 14px */
+            border-radius: 8px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #E5E5EA;
+            font-weight: 400;
+        }
+        .history-item.active {
+            background-color: #222224; /* 当前选中项背景色 */
+            font-weight: 500; /* 选中项字重加粗 */
+            color: #FFFFFF; /* 选中项文本更白 */
+        }
+        .history-item-unnamed {
+            font-size: 0.8125rem; /* 13px */
+            color: #8A8A8E;
+            padding-left: 12px;
+            margin-top: 3px;
+        }
+
+        .sidebar-footer {
+            padding: 8px;
+            border-top: 1px solid #2D2D2F; /* 页脚分割线 */
+        }
+        .sidebar-bottom-item {
+             padding: 9px 12px;
+             font-size: 0.875rem; /* 14px */
+             color: #E5E5EA;
+        }
+        .sidebar-upgrade {
+            background-color: transparent; /* 透明背景 */
+            padding: 10px 12px;
+            margin: 8px;
+            border-radius: 8px;
+            font-size: 0.875rem; /* 14px */
+            border: 1px solid #3A3A3C; /* 升级按钮边框颜色 */
+        }
+        .sidebar-upgrade div:first-child {
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            color: #E5E5EA;
+        }
+        .sidebar-upgrade svg { /* Star icon */
+            margin-right: 10px;
+            width: 18px; height: 18px; color: #FFD60A; /* 更鲜艳的金色 */
+        }
+        .sidebar-upgrade-subtitle {
+            font-size: 0.75rem; /* 12px */
+            color: #8A8A8E;
+            margin-top: 4px;
+            padding-left: 28px;
+        }
+
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #FFFFFF;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0px 20px;
+            border-bottom: 1px solid #E5E5EA; /* 主内容区头部下边框 */
+            height: 60px;
+        }
+        .chat-model-selector {
+            font-size: 1.0625rem; /* 17px */
+            font-weight: 600;
+            cursor: pointer;
+            color: #000000;
+        }
+        .chat-model-selector svg { /* Dropdown arrow */
+            width: 16px; height: 16px; margin-left: 8px; vertical-align: middle; color: #636366;
+        }
+        .chat-actions button {
+            background-color: transparent; /* 按钮透明背景 */
+            border: 1px solid #D1D1D6; /* 按钮边框 */
+            padding: 7px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 12px;
+            font-size: 0.875rem; /* 14px */
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            color: #000000; /* 按钮文字黑色 */
+        }
+        .chat-actions button:hover {
+            background-color: #F2F2F7; /* 悬停背景色 */
+        }
+        .chat-actions button svg {
+            margin-right: 8px;
+            width: 16px; height: 16px; color: #3C3C43; /* 图标颜色 */
+        }
+         .chat-actions .more-options-btn {
+            border: none; padding: 8px; margin-left: 4px;
+        }
+        .chat-actions .more-options-btn svg { margin-right: 0; }
+
+        .chat-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px; /* 消息间距 */
+        }
+
+        .message-wrapper {
+            display: flex;
+            max-width: 720px; /* 根据截图微调 */
+        }
+        .message-wrapper.user {
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .message-wrapper.ai {
+            align-self: flex-start;
+        }
+
+        .message-bubble {
+            padding: 11px 15px; /* 气泡内边距 */
+            border-radius: 18px; /* 更圆润的气泡 */
+            line-height: 1.65; /* 文本行高 */
+            font-size: 0.9375rem; /* 15px */
+            word-wrap: break-word;
+        }
+
+        .message-bubble.user {
+            background-color: #F2F2F7; /* 用户气泡背景色 */
+            color: #000000; /* 用户气泡文字黑色 */
+            border-bottom-right-radius: 6px;
+        }
+
+        .message-bubble.ai {
+            background-color: #FFFFFF;
+            color: #1C1C1E;
+            border: 1px solid #E5E5EA; /* AI气泡增加细微边框 */
+        }
+        .message-bubble.ai ul {
+            padding-left: 20px; margin: 10px 0;
+        }
+        .message-bubble.ai li {
+            margin-bottom: 6px;
+        }
+        .message-bubble.ai strong { color: #000; font-weight: 600; }
+
+        .ai-section-title {
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            margin-top: 16px;
+            margin-bottom: 10px;
+            font-size: 1em; /* 保持相对大小 */
+            color: #000000;
+        }
+        .ai-section-title svg { /* Wrench/Tool Icon */
+            width: 18px; height: 18px; margin-right: 8px; color: #545458; /* 图标颜色调整 */
+        }
+        .ai-knowledge-cutoff {
+            margin-top: 16px; /* 知识截止提示上边距 */
+            font-size: 0.9375rem; /* 15px */
+        }
+        .ai-knowledge-cutoff strong { font-weight: 600; }
+        .ai-knowledge-cutoff svg { /* Down arrow */
+            width: 16px; height: 16px; vertical-align: middle; margin-left: 6px; color: #636366;
+        }
+
+
+        .input-area-container {
+            padding: 10px 20px 12px; /* 输入区域容器内边距 */
+            border-top: 1px solid #DCDCE0; /* 更浅的分割线 */
+            background-color: #FFFFFF;
+            position: relative;
+        }
+        .input-wrapper-outer {
+            max-width: 768px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: flex-end; /* 保持底部对齐 */
+            background-color: #FFFFFF;
+            border: 1.5px solid #D1D1D6; /* 输入框边框颜色 */
+            border-radius: 18px; /* 输入框圆角 */
+            padding: 5px 5px 5px 15px; /* 输入框内部精确内边距 */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); /* 细微阴影 */
+        }
+
+        .input-textarea-with-tools {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-textarea {
+            border: none;
+            outline: none;
+            resize: none;
+            padding: 10px 4px 8px 4px; /* 文本域内边距，底部稍小 */
+            font-size: 1rem; /* 16px */
+            line-height: 1.55; /* 文本域行高 */
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: transparent;
+            width: 100%;
+            color: #1C1C1E;
+        }
+        .input-textarea::placeholder {
+            color: #8A8A8E;
+            font-weight: 400; /* 占位符字重 */
+        }
+
+        .input-field-tools { /* "+" 和 "工具" 按钮容器 */
+            display:flex;
+            align-items: center;
+            padding-top: 0px;
+            padding-left: 2px; /* 微调左对齐 */
+            height: 30px; /* 明确高度 */
+            margin-bottom: -2px; /* 补偿与textarea的间隙 */
+        }
+        .input-field-tools button {
+            background: none; border: none; cursor: pointer;
+            padding: 5px 7px;
+            margin-right: 6px;
+            font-size: 0.875rem; /* 14px */
+            color: #3C3C43; /* 工具按钮文字颜色 */
+            display: flex; align-items: center;
+            border-radius: 7px; /* 工具按钮圆角 */
+            font-weight: 500;
+        }
+        .input-field-tools button:hover { background-color: #E5E5EA; }
+        .input-field-tools button svg { width: 18px; height: 18px; margin-right: 7px; color: #545458; }
+
+
+        .input-actions { /* 麦克风和发送按钮容器 */
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            padding-left: 6px; /* 与左侧元素的间距 */
+            align-self: flex-end; /* 使其与多行文本的底部对齐 */
+            padding-bottom: 3px; /* 微调底部对齐 */
+        }
+        .input-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8A8A8E; /* 麦克风图标颜色 */
+            border-radius: 8px;
+        }
+        .input-actions button:hover { /* 麦克风悬停 */
+            background-color: #E5E5EA;
+        }
+        .input-actions button svg {
+            width: 22px;
+            height: 22px;
+        }
+        .input-actions .send-button { /* UP Arrow send button */
+            width: 34px; height: 34px; /* 发送按钮尺寸 */
+            background-color: #BDBDC2; /* 未激活发送按钮背景色 */
+            border-radius: 50%;
+            color: #FFFFFF; /* 未激活发送按钮箭头颜色 */
+            padding: 0;
+            display: flex; align-items: center; justify-content: center;
+            margin-left: 5px;
+            transition: background-color 0.2s ease; /* 平滑过渡 */
+        }
+        .input-actions .send-button.active {
+            background-color: #000000; /* 激活发送按钮背景色 */
+            color: #FFFFFF; /* 激活发送按钮箭头颜色 */
+        }
+         .input-actions .send-button:not(.active):hover {
+             background-color: #AEAEB2; /* 未激活悬停 */
+         }
+        .input-actions .send-button.active:hover {
+             background-color: #2C2C2E; /* 激活悬停 */
+         }
+        .input-actions .send-button svg { width: 18px; height: 18px; } /* 发送箭头图标尺寸 */
+
+
+        .main-footer {
+            text-align: center;
+            font-size: 0.75rem; /* 12px */
+            color: #8A8A8E;
+            padding: 8px 0 12px 0; /* 页脚内边距 */
+        }
+        .main-footer a { color: #8A8A8E; text-decoration: underline; }
+        .main-footer a:hover { color: #3C3C43; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <!-- More refined OpenAI Logo Placeholder -->
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="2.5" fill="none" opacity="0.3"/>
+                    <path d="M20,2 A18,18 0 0,1 38,20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" />
+                    <path d="M12.5,10 A12,12 0 0,1 29.5,21.5" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.7"/>
+                    <path d="M10,20 A10,10 0 0,1 20,30 A10,10 0 0,1 30,20 A10,10 0 0,1 20,10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5" transform="rotate(45 20 20)"/>
+                </svg>
+            </div>
+            <div class="collapse-icon" title="折叠侧边栏">
+                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18h12v-2H4v2zm0-5h16v-2H4v2zm0-7v2h16V6H4z"></path></svg>
+            </div>
+        </div>
+        <div class="sidebar-action">
+            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M14.06 9.02l.92.92L5.92 19H5v-.92l9.06-9.06M17.66 3c-.26 0-.51.1-.7.29l-1.83 1.83l3.75 3.75l1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29zm-3.6 3.19L3 17.25V21h3.75L17.81 9.94l-3.75-3.75z"></path></svg>
+            新聊天
+        </div>
+        <div class="sidebar-action">
+            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14z"></path></svg>
+            搜索聊天
+        </div>
+        <div class="sidebar-action">
+             <svg fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.11-.9-2-2-2h-8l-2-2z"></path></svg>
+            库
+        </div>
+
+        <div style="margin: 10px 8px 6px; border-bottom: 1px solid #2D2D2F;"></div>
+
+        <div class="sidebar-link">
+            <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 12A4.5 4.5 0 0 0 12 7.5A4.5 4.5 0 0 0 7.5 12A4.5 4.5 0 0 0 12 16.5A4.5 4.5 0 0 0 16.5 12ZM12 15A3 3 0 1 1 12 9A3 3 0 0 1 12 15Z"/><path d="M20 4H4A2 2 0 0 0 2 6V18A2 2 0 0 0 4 20H20A2 2 0 0 0 22 18V6A2 2 0 0 0 20 4ZM20 18H4V6H20V18Z"/><path d="M7.53 10.28A1 1 0 0 0 6.82 11A1 1 0 0 0 7.53 11.72A4.46 4.46 0 0 0 11 13.18V15A1 1 0 0 0 12 16A1 1 0 0 0 13 15V13.18A4.46 4.46 0 0 0 16.47 11.72A1 1 0 0 0 17.18 11A1 1 0 0 0 16.47 10.28A2.51 2.51 0 0 1 13 9V7A1 1 0 0 0 12 6A1 1 0 0 0 11 7V9A2.51 2.51 0 0 1 7.53 10.28Z"/></svg>
+            GPT
+        </div>
+        <div class="sidebar-link">
+            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M10 16.5v-9l6 4.5-6 4.5zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8z"></path></svg>
+            Sora
+        </div>
+        <div class="sidebar-project">
+            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"></path></svg>
+            新项目
+        </div>
+
+        <div class="history-section">
+            <div class="history-section-title">今天</div>
+            <div class="history-item active">树转化为二叉树</div>
+            <div class="history-item-unnamed">(未命名的对话)</div>
+
+            <div class="history-section-title">昨天</div>
+            <div class="history-item">我是谁</div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-bottom-item">
+                 <svg fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3L2 12h3v8z"></path></svg>
+                回到首页
+            </div>
+            <div class="sidebar-bottom-item">
+                <svg fill="currentColor" viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.44 2.66 14.2 2.5 13.96 2.5h-4c-.23 0-.45.16-.49.4l-.38 2.65c-.61.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42.12.64l2 3.46c.12.22.39.3.61-.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.26.4.49.4h4c.23 0 .45-.16.49-.4l.38-2.65c.61-.25 1.17-.59-1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5s-1.57 3.5-3.5 3.5z"></path></svg>
+                一键换肤
+            </div>
+            <div class="sidebar-bottom-item">
+                <svg fill="currentColor" viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5c0-2.21-1.79-4-4-4z"></path></svg>
+                常见问题
+            </div>
+             <div class="sidebar-bottom-item">
+                <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path></svg>
+                语音聊天
+            </div>
+            <div class="sidebar-upgrade">
+                <div>
+                    <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2L9.19 8.63L2 9.24l5.46 4.73L5.82 21L12 17.27Z"></path></svg>
+                    次数不够？开通会员
+                </div>
+                <div class="sidebar-upgrade-subtitle">解锁高频使用次数及全模型</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="chat-header">
+            <div class="chat-model-selector">
+                ChatGPT 4o
+                <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z"></path></svg>
+            </div>
+            <div class="chat-actions">
+                <button>
+                    <svg fill="currentColor" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81c1.66 0 3-1.34 3-3s-1.34-3-3-3s-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65c0 1.66 1.34 3 3 3s3-1.34 3-3s-1.34-3-3-3z"></path></svg>
+                    共享
+                </button>
+                <button class="more-options-btn" title="更多选项">
+                    <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2s-2 .9-2 2s.9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2z"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div class="chat-area">
+            <!-- AI Message Example -->
+            <div class="message-wrapper ai">
+                <div class="message-bubble ai">
+                    <ul>
+                        <li>文档写作、翻译、润色</li>
+                        <li>图像识别与分析 (你上传的图片我也能理解)</li>
+                        <li>数据建模、统计分析等</li>
+                    </ul>
+                    <div class="ai-section-title">
+                         <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83zM3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM5.92 19H5v-.92l9.06-9.06.92.92L5.92 19z"></path></svg>
+                        <strong>当前版本 (GPT-4.5 / GPT-4-turbo) 的特点:</strong>
+                    </div>
+                     <ul>
+                        <li>更快响应、更高准确率</li>
+                        <li>长上下文记忆 (最多约128k tokens)</li>
+                        <li>能力接近 GPT-4.0 API 中的“GPT-4-0125-preview”</li>
+                    </ul>
+                    <p style="margin-top:16px;">如果你还想了解我的功能细节、历史版本 (如 GPT-3.5 vs GPT-4)、或是否适合考研使用，我也可以继续解释。你想了解哪方面?</p>
+                </div>
+            </div>
+            <!-- User Message Example -->
+             <div class="message-wrapper user">
+                <div class="message-bubble user">
+                    你的知识截止到什么时候
+                </div>
+            </div>
+            <!-- AI Knowledge Cutoff Message -->
+            <div class="message-wrapper ai">
+                 <div class="message-bubble ai ai-knowledge-cutoff">
+                    我的知识截至时间是 <strong>2024年6月</strong>。
+                    <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 2a.75.75 0 01.75.75v9.54l2.22-2.22a.75.75 0 111.06 1.06l-3.5 3.5a.75.75 0 01-1.06 0l-3.5-3.5a.75.75 0 111.06-1.06L7.25 12.29V2.75A.75.75 0 018 2z"></path></svg>
+                 </div>
+            </div>
+        </div>
+
+        <div class="input-area-container">
+            <div class="input-wrapper-outer">
+                <div class="input-wrapper">
+                    <div class="input-textarea-with-tools">
+                        <textarea class="input-textarea" placeholder="询问任何问题" rows="1"></textarea>
+                        <div class="input-field-tools">
+                            <button title="添加附件">
+                                <svg fill="currentColor" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path></svg>
+                            </button>
+                            <button title="使用工具">
+                                <!-- Refined Tool/Wrench Icon -->
+                                <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.625 8.063L15.937 6.375L12 2.438L8.062 6.375L6.375 8.062L2.438 12L6.375 15.938L8.062 17.625L12 21.562L15.938 17.625L17.625 15.938L21.562 12L17.625 8.063ZM11.25 14.562V12.75H9.938V11.25H11.25V9.438H12.75V11.25H14.062V12.75H12.75V14.562H11.25Z"/></svg>
+                                工具
+                            </button>
+                        </div>
+                    </div>
+                    <div class="input-actions">
+                        <button title="语音输入">
+                            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path></svg>
+                        </button>
+                        <button class="send-button" title="发送消息">
+                            <!-- Upward Arrow SVG -->
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94l18-8.25a.75.75 0 000-1.39l-18-8.25zM4.31 3.905l15.244 6.975L4.31 17.855v-3.847h6.438a.75.75 0 000-1.5H4.31V3.905z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="main-footer">
+                     ChatGPT 也可能会犯错。 | <a href="#" target="_blank" title="关于 ChatGPT">© ChatGPT 2023-2025</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const textarea = document.querySelector('.input-textarea');
+        const sendButton = document.querySelector('.send-button');
+        const inputFieldTools = document.querySelector('.input-field-tools');
+
+        function updateSendButtonState() {
+            if (textarea.value.trim() !== '') {
+                sendButton.classList.add('active');
+            } else {
+                sendButton.classList.remove('active');
+            }
+        }
+
+        textarea.addEventListener('input', () => {
+            textarea.style.height = 'auto';
+            let scrollHeight = textarea.scrollHeight;
+            const maxHeight = 150; // Corresponds to max-height in CSS
+            if (scrollHeight > maxHeight) {
+                textarea.style.height = maxHeight + 'px';
+            } else {
+                textarea.style.height = scrollHeight + 'px';
+            }
+            updateSendButtonState();
+
+            if (textarea.value.trim() !== '') {
+                inputFieldTools.style.visibility = 'hidden'; /* Hide but keep space */
+            } else {
+                inputFieldTools.style.visibility = 'visible'; /* Show again */
+            }
+        });
+
+        // Initial state
+        updateSendButtonState();
+        if (textarea.value.trim() === '') {
+            inputFieldTools.style.visibility = 'visible';
+        } else {
+            inputFieldTools.style.visibility = 'hidden';
+        }
+    </script>
+</body>
+</html>

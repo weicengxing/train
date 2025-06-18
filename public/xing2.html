@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>太阳系八大行星轨道演示（带纹理）</title>
+  <style>
+    body { background: #000; margin: 0; overflow: hidden; }
+    canvas { display: block; margin: 0 auto; background: #000; }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #fff;
+      font-family: sans-serif;
+      background: rgba(0,0,0,0.5);
+      padding: 8px 16px;
+      border-radius: 8px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="info"></div>
+  <canvas id="solarSystem"></canvas>
+  <script>
+    const canvas = document.getElementById('solarSystem');
+    const ctx = canvas.getContext('2d');
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    // 太阳系八大行星数据（半径放大2倍，增加纹理类型）
+    const planets = [
+      { name: '水星', color: '#b5b5b5', radius: 6, orbit: 50, period: 88, texture: 'mercury' },
+      { name: '金星', color: '#eec97d', radius: 10, orbit: 80, period: 225, texture: 'venus' },
+      { name: '地球', color: '#3a7bd5', radius: 12, orbit: 110, period: 365, texture: 'earth' },
+      { name: '火星', color: '#c1440e', radius: 10, orbit: 150, period: 687, texture: 'mars' },
+      { name: '木星', color: '#e3c07b', radius: 20, orbit: 210, period: 4333, texture: 'jupiter' },
+      { name: '土星', color: '#e7d3a1', radius: 18, orbit: 270, period: 10759, texture: 'saturn' },
+      { name: '天王星', color: '#7ad7f0', radius: 16, orbit: 330, period: 30687, texture: 'uranus' },
+      { name: '海王星', color: '#4062bb', radius: 16, orbit: 390, period: 60190, texture: 'neptune' }
+    ];
+
+    // 太阳
+    const sun = {
+      color: '#ffcc00',
+      radius: 36 // 放大两倍
+    };
+
+    // 轨道和速度缩放
+    const orbitScale = Math.min(width, height) / 900;
+    const speedScale = 100; // 控制动画速度
+
+    // 绘制带纹理的行星
+    function drawPlanet(x, y, planet) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      switch (planet.texture) {
+        case 'earth':
+          // 地球：蓝色+白色云层
+          let gradEarth = ctx.createRadialGradient(0, 0, planet.radius * 0.2, 0, 0, planet.radius);
+          gradEarth.addColorStop(0, '#3a7bd5');
+          gradEarth.addColorStop(0.7, '#1e3c72');
+          gradEarth.addColorStop(1, '#fff');
+          ctx.fillStyle = gradEarth;
+          ctx.beginPath();
+          ctx.arc(0, 0, planet.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          // 云层
+          ctx.globalAlpha = 0.4;
+          ctx.strokeStyle = '#fff';
+          for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.arc(
+              Math.random() * planet.radius * 0.8 - planet.radius * 0.4,
+              Math.random() * planet.radius * 0.8 - planet.radius * 0.4,
+              planet.radius * (0.3 + Math.random() * 0.2),
+              0, 2 * Math.PI
+            );
+            ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+          break;
+        case 'jupiter':
+          // 木星：棕色条纹
+          let gradJupiter = ctx.createRadialGradient(0, 0, planet.radius * 0.2, 0, 0, planet.radius);
+          gradJupiter.addColorStop(0, '#fff2c2');
+          gradJupiter.addColorStop(1, '#e3c07b');
+          ctx.fillStyle = gradJupiter;
+          ctx.beginPath();
+          ctx.arc(0, 0, planet.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          // 条纹
+          ctx.strokeStyle = '#b58b4a';
+          for (let i = -2; i <= 2; i++) {
+            ctx.beginPath();
+            ctx.ellipse(0, i * planet.radius * 0.3, planet.radius * 0.95, planet.radius * 0.15, 0, 0, 2 * Math.PI);
+            ctx.stroke();
+          }
+          break;
+        case 'saturn':
+          // 土星：淡黄色+光环
+          let gradSaturn = ctx.createRadialGradient(0, 0, planet.radius * 0.2, 0, 0, planet.radius);
+          gradSaturn.addColorStop(0, '#fffbe0');
+          gradSaturn.addColorStop(1, '#e7d3a1');
+          ctx.fillStyle = gradSaturn;
+          ctx.beginPath();
+          ctx.arc(0, 0, planet.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          // 光环
+          ctx.save();
+          ctx.globalAlpha = 0.5;
+          ctx.strokeStyle = '#e7d3a1';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, planet.radius * 1.7, planet.radius * 0.5, 0.5, 0, 2 * Math.PI);
+          ctx.stroke();
+          ctx.restore();
+          break;
+        case 'uranus':
+          // 天王星：淡蓝色+细环
+          ctx.fillStyle = '#7ad7f0';
+          ctx.beginPath();
+          ctx.arc(0, 0, planet.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.save();
+          ctx.globalAlpha = 0.3;
+          ctx.strokeStyle = '#b2f0ff';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, planet.radius * 1.2, planet.radius * 0.4, 0.2, 0, 2 * Math.PI);
+          ctx.stroke();
+          ctx.restore();
+          break;
+        case 'neptune':
+          // 海王星：深蓝色+浅蓝斑点
+          let gradNeptune = ctx.createRadialGradient(0, 0, planet.radius * 0.2, 0, 0, planet.radius);
+          gradNeptune.addColorStop(0, '#4062bb');
+          gradNeptune.addColorStop(1, '#7ad7f0');
+          ctx.fillStyle = gradNeptune;
+          ctx.beginPath();
+          ctx.arc(0, 0, planet.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.globalAlpha = 0.5;
+          ctx.fillStyle = '#b2f0ff';
+          for (let i = 0; i < 2; i++) {
+            ctx.beginPath();
+            ctx.arc(
+              Math.random() * planet.radius * 0.8 - planet.radius * 0.4,
+              Math.random() * planet.radius * 0.8 - planet.radius * 0.4,
+              planet.radius * 0.3,
+              0, 2 * Math.PI
+            );
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+          break;
+        case 'mars':
+          // 火星：红色+深色斑点
+          ctx.fillStyle = '#c1440e';
+          ctx.beginPath();
+          ctx.arc(0, 0, planet.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.globalAlpha = 0.5;
+          ctx.fillStyle = '#7a2f0b';
+          for (let i = 0; i < 2; i++) {
+            ctx.beginPath();
+            ctx.arc(
+              Math.random() * planet.radius * 0.8 - planet.radius * 0.4,
+              Math.random() * planet.radius * 0.8 - planet.radius * 0.4,
+              planet.radius * 0.2,
+              0, 2 * Math.PI
+            );
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+          break;
+        case 'venus':
+          // 金星：黄色渐变
+          let gradVenus = ctx.createRadialGradient(0, 0, planet.radius * 0.2, 0, 0, planet.radius);
+          gradVenus.addColorStop(0, '#fff2c2');
+          gradVenus.addColorStop(1, '#eec97d');
+          ctx.fillStyle = gradVenus;
+          ctx.beginPath();
+          ctx.arc(0, 0, planet.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          break;
+        case 'mercury':
+          // 水星：灰色+深色斑点
+          ctx.fillStyle = '#b5b5b5';
+          ctx.beginPath();
+          ctx.arc(0, 0, planet.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.globalAlpha = 0.5;
+          ctx.fillStyle = '#888';
+          for (let i = 0; i < 2; i++) {
+            ctx.beginPath();
+            ctx.arc(
+              Math.random() * planet.radius * 0.8 - planet.radius * 0.4,
+              Math.random() * planet.radius * 0.8 - planet.radius * 0.4,
+              planet.radius * 0.2,
+              0, 2 * Math.PI
+            );
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+          break;
+        default:
+          ctx.fillStyle = planet.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, planet.radius, 0, 2 * Math.PI);
+          ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+
+      // 画太阳
+      ctx.save();
+      ctx.translate(width / 2, height / 2);
+      ctx.beginPath();
+      ctx.arc(0, 0, sun.radius, 0, 2 * Math.PI);
+      ctx.fillStyle = sun.color;
+      ctx.shadowColor = sun.color;
+      ctx.shadowBlur = 80;
+      ctx.fill();
+      ctx.restore();
+
+      // 画行星轨道和行星
+      const now = Date.now() / 1000; // 秒
+      planets.forEach((planet, i) => {
+        // 画轨道
+        ctx.save();
+        ctx.translate(width / 2, height / 2);
+        ctx.beginPath();
+        ctx.arc(0, 0, planet.orbit * orbitScale, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+
+        // 计算行星位置
+        const angle = (now * speedScale / planet.period) * 2 * Math.PI;
+        const x = width / 2 + Math.cos(angle) * planet.orbit * orbitScale;
+        const y = height / 2 + Math.sin(angle) * planet.orbit * orbitScale;
+
+        // 画行星（带纹理）
+        drawPlanet(x, y, planet);
+
+        // 行星名称
+        ctx.save();
+        ctx.font = '14px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(planet.name, x, y - planet.radius - 10);
+        ctx.restore();
+      });
+    }
+
+    function animate() {
+      draw();
+      requestAnimationFrame(animate);
+    }
+
+    // 响应窗口大小变化
+    window.addEventListener('resize', () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    });
+
+    animate();
+  </script>
+</body>
+</html>

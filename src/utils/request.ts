@@ -77,8 +77,8 @@ import axios from 'axios'
 
 // 创建一个axios对象出来
 const request = axios.create({
-     baseURL: 'http://localhost:8888',
-    //baseURL: 'https://f1ad-58-194-169-164.ngrok-free.app',
+     //baseURL: 'http://localhost:8888',
+    baseURL: 'https://e451-58-194-169-164.ngrok-free.app',
 
     
     timeout: 1000000

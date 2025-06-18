@@ -422,7 +422,7 @@ request.post("/deal/getpagemu",fd).then(res=>{
     downlist.value.set(title+".mp3", downloadState);
     
     axios({
-      url: 'https://965c-58-194-169-164.ngrok-free.app/deal/down',  // 后端接口
+      url: 'https://e451-58-194-169-164.ngrok-free.app/deal/down',  // 后端接口
       method: 'POST',
       params: {
         page:title
@@ -463,7 +463,7 @@ request.post("/deal/getpagemu",fd).then(res=>{
     downlist.value.set(title+".mp4", downloadState);
     
     axios({
-      url: 'https://965c-58-194-169-164.ngrok-free.app/deal/down4',  // 后端接口
+      url: 'https://e451-58-194-169-164.ngrok-free.app/deal/down4',  // 后端接口
       method: 'POST',
       params: {
         page:title
