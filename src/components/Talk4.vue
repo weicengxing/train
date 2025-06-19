@@ -621,7 +621,7 @@ request.post("/user/getPhoto",fd).then(res=>{
           console.log("您的浏览器不支持WebSocket");
         } else {
           console.log("您的浏览器支持WebSocket");
-          let socketUrl = "wss://e451-58-194-169-164.ngrok-free.app/imserver/" + username;
+          let socketUrl = "wss://412c-58-194-169-164.ngrok-free.app/imserver/" + username;
           if (socket != null) {
             socket.close();
             socket = null;

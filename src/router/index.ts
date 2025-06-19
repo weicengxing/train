@@ -141,7 +141,7 @@ const routes = [
   {
     path: "/Ce",
     name: "ce2",
-    component: () => import("../components/Ces2.vue"),
+    component: () => import("../components/Ces3.vue"),
     children:[
       {
         path:"/Jiaxi",

@@ -35,7 +35,7 @@ const selectOption = (modelName) => {
 };
 onMounted(async () => {
   try {
-    const response = await fetch('https://5fdb-58-194-169-164.ngrok-free.app/api/models', {
+    const response = await fetch('https://8e57-58-194-169-164.ngrok-free.app/api/models', {
       headers: { 'ngrok-skip-browser-warning': 'true' }
     });
     if (!response.ok) throw new Error('Failed to fetch models');
@@ -180,7 +180,7 @@ const sendMessage = async () => {
   conversationHistory.value.push({ role: 'assistant', content: '' });
 
   try {
-    const response = await fetch('https://5fdb-58-194-169-164.ngrok-free.app/api/chat/stream', {
+    const response = await fetch('https://8e57-58-194-169-164.ngrok-free.app/api/chat/stream', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -371,7 +371,7 @@ const scrollToBottom = () => {
 </template>
 
 <style>
-/* ... CSS 保持不变 ... */
+/* ... 其他所有CSS样式保持不变 ... */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap');
 :root {
   --font-primary: 'Roboto', sans-serif;
@@ -527,17 +527,143 @@ body {
 }
 .preview-fade-enter-active, .preview-fade-leave-active { transition: opacity 0.3s, transform 0.3s; }
 .preview-fade-enter-from, .preview-fade-leave-to { opacity: 0; transform: scale(0.9); }
+/* ----- 👇 修正后的图片显示样式 👇 ----- */
+
+/* 1. 约束图片容器，这是最关键的一步！ */
+/* 替换原有的 .user-message-image 样式 */
+/* 在您的 <style> 标签中，找到并完全替换这两个部分： */
+
+/* 1. 替换 .message-bubble >>> .user-message-image-container 样式 */
+/* 方案1：基于面积统一（推荐） - 让所有图片占用相似的视觉空间 */
+.message-bubble >>> .user-message-image {
+  /* 设置一个目标面积，通过限制宽度和高度的乘积来统一视觉大小 */
+  max-width: 200px !important;
+  max-height: 200px !important;
+  min-width: 120px !important;
+  min-height: 120px !important;
+  
+  /* 让图片自动调整，保持比例 */
+  width: auto !important;
+  height: auto !important;
+  
+  /* 关键：使用 contain 保持比例，但添加背景确保统一的视觉框架 */
+  object-fit: contain !important;
+  
+  /* 添加统一的背景框，让所有图片都有相同的"画布"大小 */
+  background-color: rgba(26, 20, 35, 0.3) !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  
+  /* 设置固定的显示框架，所有图片都会在这个框架内居中显示 */
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  
+  /* 美化样式 */
+  border-radius: 8px !important;
+  border: 2px solid var(--accent-purple) !important;
+  cursor: pointer !important;
+  transition: transform 0.2s ease !important;
+  vertical-align: top !important;
+  margin: 4px !important;
+}
+
+/* 方案2：如果您更希望所有图片都显示为相同的框架大小 */
+.message-bubble >>> .user-message-image.uniform-frame {
+  /* 固定框架大小 */
+  width: 180px !important;
+  height: 180px !important;
+  
+  /* 图片在框架内居中并等比缩放 */
+  object-fit: contain !important;
+  object-position: center !important;
+  
+  /* 背景和边框 */
+  background-color: rgba(26, 20, 35, 0.5) !important;
+  border-radius: 8px !important;
+  border: 2px solid var(--accent-purple) !important;
+  
+  /* 其他样式 */
+  cursor: pointer !important;
+  transition: transform 0.2s ease !important;
+  display: inline-block !important;
+  vertical-align: top !important;
+  margin: 4px !important;
+}
+
+/* 方案3：智能调整 - 根据图片方向调整显示尺寸 */
+/* 在您的 <style> 标签中，找到并完全替换这两个部分： */
+
+/* 1. 替换 .message-bubble >>> .user-message-image-container 样式 */
 .message-bubble >>> .user-message-image-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 0.75rem;
+  align-items: flex-start; /* 让不同高度的图片顶部对齐 */
 }
+
+/* 2. 完全替换 .message-bubble >>> .user-message-image 样式 */
 .message-bubble >>> .user-message-image {
-  max-width: 150px;
-  max-height: 150px;
-  border-radius: 8px;
-  border: 2px solid var(--accent-purple);
-  object-fit: cover;
+  /* 设置最大尺寸限制 */
+  max-width: 250px !important;
+  max-height: 250px !important;
+  
+  /* 设置最小尺寸，确保小图也能看清 */
+  min-width: 120px !important;
+  
+  /* 让图片自动调整大小，保持比例 */
+  width: auto !important;
+  height: auto !important;
+  
+  /* 关键设置：等比缩放，不裁剪 */
+  object-fit: contain !important;
+  
+  /* 背景和边框样式 */
+  background-color: var(--bg-dark-2) !important;
+  border-radius: 8px !important;
+  border: 2px solid var(--accent-purple) !important;
+  
+  /* 交互效果 */
+  cursor: pointer !important;
+  transition: transform 0.2s ease !important;
+  
+  /* 确保图片正确显示 */
+  display: block !important;
+  vertical-align: top !important;
+}
+
+/* 鼠标悬浮效果 */
+.message-bubble >>> .user-message-image:hover {
+  transform: scale(1.05) !important;
+}
+
+/* 如果上面的方法还是不生效，请尝试这个更强制的方式： */
+#chat-container .message-bubble .user-message-image {
+  max-width: 250px !important;
+  max-height: 250px !important;
+  min-width: 120px !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  background-color: var(--bg-dark-2) !important;
+  border-radius: 8px !important;
+  border: 2px solid var(--accent-purple) !important;
+  cursor: pointer !important;
+  transition: transform 0.2s ease !important;
+  display: block !important;
+  vertical-align: top !important;
+}
+
+#chat-container .message-bubble .user-message-image:hover {
+  transform: scale(1.05) !important;
+}
+
+#chat-container .message-bubble .user-message-image-container {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+  margin-bottom: 0.75rem !important;
+  align-items: flex-start !important;
 }
 </style>
