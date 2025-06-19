@@ -6,7 +6,6 @@ import { resolve } from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/train/',
   plugins: [vue()],
   resolve: {
     // 设置路径别名
