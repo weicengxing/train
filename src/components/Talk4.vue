@@ -33,7 +33,8 @@
         <template v-slot="scope">
           <el-badge :value="parseInt(scope.row.shz)" :max="6" class="item" :show-zero=show
           :hidden="scope.row.username==chatUser">
-            <img :src="scope.row.img" class="d">
+            <img :src="`/images/${scope.row.img.replace('/src/assets/', '')}`" class="d">
+            
           </el-badge>
         </template>
        
