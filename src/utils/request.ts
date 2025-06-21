@@ -74,10 +74,10 @@
 
 
 import axios from 'axios'
-
+import{userurl} from '/public/config.ts'
 // 创建一个axios对象出来
 const request = axios.create({
-     baseURL: 'https://412c-58-194-169-164.ngrok-free.app',
+     baseURL: userurl, // 后端请求端口设置，根据自己的端口进行设置
     //baseURL: 'https://e451-58-194-169-164.ngrok-free.app',
 
     

@@ -4,6 +4,7 @@ import { marked } from 'marked';
 import { vOnClickOutside } from '@vueuse/components';
 import { useRoute } from 'vue-router';
 import { Upload } from '@element-plus/icons-vue';
+import{chaturl} from'/public/config.ts';
 
 // ... script 部分与上一版完全相同，无需修改 ...
 const availableModels = ref([]);
@@ -35,7 +36,7 @@ const selectOption = (modelName) => {
 };
 onMounted(async () => {
   try {
-    const response = await fetch('https://8e57-58-194-169-164.ngrok-free.app/api/models', {
+    const response = await fetch(chaturl, {
       headers: { 'ngrok-skip-browser-warning': 'true' }
     });
     if (!response.ok) throw new Error('Failed to fetch models');
@@ -180,7 +181,7 @@ const sendMessage = async () => {
   conversationHistory.value.push({ role: 'assistant', content: '' });
 
   try {
-    const response = await fetch('https://8e57-58-194-169-164.ngrok-free.app/api/chat/stream', {
+    const response = await fetch(chaturl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

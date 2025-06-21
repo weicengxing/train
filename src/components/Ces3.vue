@@ -229,7 +229,7 @@ ref="muti"
   import axios from 'axios'
   import { Download, Position } from '@element-plus/icons-vue';
   import musicPlayer, { playerState, playerControls } from '../utils/musicPlayer';
-  
+  import{userurl} from '/public/config.ts'
   const background = ref(false)
   const disabled = ref(false)
   const currentPage3 = ref(1)
@@ -337,16 +337,113 @@ ref="muti"
     else wid.value=170;
   }
   
-  const Down=async (title:string)=>{
-    // ... (Down function remains the same)
+   const Down=async (title:string)=>{
+    const downloadState = {
+      progress: ref(0),
+      cpro: ref(0),
+      tpro: ref(0),
+      speed: ref(0),
+      lastpro:ref(0),
+      lasttim:ref(0),
+      cfile:ref(title+".mp3"),
+      shengtim:ref(0)
+    };
+    downlist.value.set(title+".mp3", downloadState);
+    
+    axios({
+      url: `${userurl}/deal/down`,  // 后端接口
+      method: 'POST',
+      params: {
+        page:title
+      },
+      responseType: 'blob'  // 设置为 blob 以处理文件流
+    ,
+    onDownloadProgress: (progressEvent) => {
+      if (progressEvent.lengthComputable) {
+        downloadState.cpro.value = progressEvent.loaded;
+        downloadState.tpro.value = progressEvent.total;
+        
+        downloadState.progress.value = (progressEvent.loaded / progressEvent.total) * 100;
+        calculateInstantaneousSpeed(title+".mp3")
+      }
+    }
+  }).then(response => {
+   
+    const blob = new Blob([response.data], { type: 'audio/mpeg' });
+   
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = title;  // 设置下载文件名
+    link.click();
+    downlist.value.delete(title+".mp3");
+  });
   }
-  
   const Down4=async (title:string)=>{
-    // ... (Down4 function remains the same)
+    const downloadState = {
+      progress: ref(0),
+      cpro: ref(0),
+      tpro: ref(0),
+      speed: ref(0),
+      lastpro:ref(0),
+      lasttim:ref(0),
+      cfile:ref(title+".mp4"),
+      shengtim:ref(0)
+    };
+    downlist.value.set(title+".mp4", downloadState);
+    
+    axios({
+      url: `${userurl}/deal/down4`,  // 后端接口
+      method: 'POST',
+      params: {
+        page:title
+      },
+      responseType: 'blob'  // 设置为 blob 以处理文件流
+    ,
+    
+    onDownloadProgress: (progressEvent) => {
+      if (progressEvent.lengthComputable) {
+        downloadState.cpro.value = progressEvent.loaded;
+        downloadState.tpro.value = progressEvent.total;
+        
+        downloadState.progress.value = (progressEvent.loaded / progressEvent.total) * 100;
+        calculateInstantaneousSpeed(title+".mp4")
+      }
+    }
+  }).then(response => {
+   
+    const blob = new Blob([response.data], { type: 'video/mp4' }); // 创建 MP4 文件 Blob
+   
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = title;  // 设置下载文件名
+    link.click();
+    downlist.value.delete(title+".mp4");
+  });
   }
   
-  const calculateInstantaneousSpeed=(title:string)=> {
-    // ... (calculateInstantaneousSpeed function remains the same)
+ const calculateInstantaneousSpeed=(title:string)=> {
+    const cdown=downlist.value.get(title);
+           
+    
+    
+    const currentTime = Date.now();  // 当前时间
+       
+    const elapsedTime = (currentTime - cdown.lasttim) / 1000;  // 秒数
+
+    if (elapsedTime > 0) {
+      // 计算瞬间网速：当前已下载字节数 - 上次已下载字节数 / 时间差（秒）
+      const speed2 = (cdown.cpro - cdown.lastpro) / elapsedTime / 1024;  // 转换为 KB/s
+      
+      cdown.shengtim=((cdown.tpro-cdown.cpro)/(speed2*1024)).toFixed(2);
+      cdown.speed = speed2.toFixed(2);  // 保留两位小数
+      
+    }
+
+    // 更新最后一次下载的时间和已下载字节数
+    cdown.lasttim = currentTime;
+    cdown.lastpro = cdown.cpro;
+    
+    
   }
 
   const quemo=()=>{

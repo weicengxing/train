@@ -31,12 +31,21 @@
       <el-table-column label="" color="black"  width="85" >
        
         <template v-slot="scope">
-          <el-badge :value="parseInt(scope.row.shz)" :max="6" class="item" :show-zero=show
-          :hidden="scope.row.username==chatUser">
-            <img :src="`/images/${scope.row.img.replace('/src/assets/', '')}`" class="d">
-            
-          </el-badge>
-        </template>
+  <el-badge
+    :value="parseInt(scope.row.shz)"
+    :max="99"
+    class="item"
+    :show-zero="show"
+    :hidden="scope.row.username == chatUser"
+  >
+    <img
+      :src="getAvatarUrl(scope.row.img)"
+      class="d"
+    />
+  </el-badge>
+  
+</template>
+
        
     </el-table-column>
      
@@ -106,7 +115,7 @@
               
             <p style="padding-top: 72px;"></p> 
            
-            <img :src=item.headImgUrl width="70px" class="a" >
+            <img :src="`https://raw.githubusercontent.com/weicengxing100/images/main/${item.headImgUrl.replace('/src/assets/', '')}`" width="70px" class="a" >
                 <div class="chat-bubble left" v-if="item.textType=='text'" >
                 
         {{ item.content }}
@@ -128,7 +137,7 @@
             <p style="padding-top: 72px;"></p> 
             <el-icon class="v" @click="che(index)" v-if="chexian==1&&gouli[index].xuan==1"><CircleCheck /></el-icon>
             <el-icon class="u" @click="che(index)" v-if=" chexian==1&&gouli[index].xuan==0"><Check /></el-icon>
-            <img :src=toux width="70px" class="b" >
+            <img :src="`https://raw.githubusercontent.com/weicengxing100/images/main/${item.headImgUrl.replace('/src/assets/', '')}`" width="70px" class="b" >
             <div class="chat-bubble right" v-if="item.textType=='text'" >
                 
         {{ item.content }}
@@ -136,7 +145,7 @@
             <div v-if="item.textType=='image'" >
             <img :src=item.content  class="e">
         </div>
-        <div v-if="item.textType=='invite'" class="j">
+        <div v-if="item.textType=='invite'"  class="j">
                     <el-result
         icon="success"
         title="点击进群"
@@ -210,6 +219,7 @@
   import reque from "../utils/request";
   import { ElMessage,ElMessageBox  } from 'element-plus'
 import { da } from "element-plus/es/locales.mjs";
+import{userurl} from '/public/config.ts'
   let socket;
   export default {
     name: "Im",
@@ -223,7 +233,11 @@ import { da } from "element-plus/es/locales.mjs";
         open:false,
         text: "",
         messages: [],
-        content: '',
+        sindex:0,
+        chu:0,
+        count:0,
+        qunsui:[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+         content: '',
         userna:'',
         toux:'',
         show:false,
@@ -235,6 +249,7 @@ import { da } from "element-plus/es/locales.mjs";
        goucolor:'',
        chexian:0,
        yaoxian:0,
+       nochange:0,
        xuqun:'选择群聊',
        chat:'',
        gouli:[
@@ -418,6 +433,20 @@ import { da } from "element-plus/es/locales.mjs";
             }
           
         },
+         getAvatarUrl(imgPath) {
+    if ((!imgPath || imgPath=="/src/assets/循迹.jpg")) {
+      let seed = 0; 
+      // 返回随机头像地址（你可以换成你喜欢的随机图片API）
+     seed=this.qunsui[(this.sindex++)%this.count];
+     
+     
+     
+      return `https://picsum.photos/seed/${seed}/200/200?face`;
+    } else {
+     
+      return `https://raw.githubusercontent.com/weicengxing100/images/main/${imgPath.replace('/src/assets/', '')}`;
+    }
+  },
         jianqun(){
           this.open=true;
         },
@@ -476,7 +505,7 @@ import { da } from "element-plus/es/locales.mjs";
 						"fromw":this.userna,
             "tow":this.chatUser,
 						"textType": "invite",
-						// "headImgUrl": "/src/assets/"+this.userna+".jpg",
+						 "headImgUrl": "/src/assets/"+this.userna+".jpg",
 						"content": this.xuqun,
             "daya":day,
             "timea":time,
@@ -507,10 +536,13 @@ import { da } from "element-plus/es/locales.mjs";
             // 组装待发送的消息 json
             // {"from": "zhang", "to": "admin", "text": "聊天文本"}
           var now=new Date();
+          
             var day=now.toLocaleDateString();var time=now.toLocaleTimeString();
            
-          var  a=day+"g"+time; var b=this.scon;
+          var  a=day+"g"+time;
+           var b=this.scon;
             var scha="";
+            var mon=a.substring(5,7);
             
            { var a1= (parseInt(a.substring(0,4))-parseInt(b.substring(0,4)))*365*24*3600;
             
@@ -540,7 +572,7 @@ import { da } from "element-plus/es/locales.mjs";
 						"fromw":this.userna,
             "tow":this.chatUser,
 						"textType": "text",
-						// "headImgUrl": "/src/assets/"+this.userna+".jpg",
+						 "headImgUrl": "/src/assets/"+this.userna+".jpg",
 						"content": this.text,
             "daya":day,
             "timea":time,
@@ -549,13 +581,17 @@ import { da } from "element-plus/es/locales.mjs";
 					}
            )
           
-         
-            this.text = '';this.scon=mon+"g"+day;
+          
+              
+            this.text = '';
+            
+            this.scon=mon+"g"+day;
+            alert("消息已发送");
           }
         }
       },
       createContent(remoteUser, nowUser, text) {  // 这个方法是用来将 json的聊天消息数据转换成 html的。
-        let html
+        let html="";
         // 当前用户消息
         if (nowUser) { // nowUser 表示是否显示当前用户发送的聊天消息，绿色气泡
             
@@ -584,6 +620,7 @@ import { da } from "element-plus/es/locales.mjs";
         }
         console.log(html)
         this.content += html;
+
       },
         che(gouxu){
          
@@ -601,6 +638,12 @@ import { da } from "element-plus/es/locales.mjs";
         
        },
       init() {
+        for(var m=0; m<this.qunsui.length;m++){
+          const randomId = Math.floor(Math.random() * 1000);
+        this.qunsui[m]=randomId;
+         
+          
+        }
         
         this.user = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : {}
         let username = this.user.username;
@@ -622,7 +665,7 @@ request.post("/user/getPhoto",fd).then(res=>{
           console.log("您的浏览器不支持WebSocket");
         } else {
           console.log("您的浏览器支持WebSocket");
-          let socketUrl = "wss://412c-58-194-169-164.ngrok-free.app/imserver/" + username;
+          let socketUrl = "ws://"+userurl.replace('https://', '')+"/imserver/" + username;
           if (socket != null) {
             socket.close();
             socket = null;
@@ -701,6 +744,9 @@ request.post("/user/getPhoto",fd).then(res=>{
             if (data.users) {  // 获取在线人员信息
            
               _this.users = data.users.filter(user => user.username !== username)  // 获取当前连接的所有用户信息，并且排除自身，自己不会出现在自己的聊天列表里
+             if(_this.chu==0) 
+              {_this.count= _this.users[_this.users.length-1].count;_this.chu=1;}
+             
           
             } 
             if(data.text)
@@ -775,7 +821,7 @@ request.post("/user/getPhoto",fd).then(res=>{
   }
   
   </script>
-  <style>
+  <!-- <style>
      body {
         font-family: Arial, sans-serif;
         background-color: #f5f5f5;
@@ -939,4 +985,332 @@ request.post("/user/getPhoto",fd).then(res=>{
       color:aqua
     }
   </style>
-  <!-- 或许可以把每对人的对话存入一个表内，而不是混合起来，至于表名可以放入另一个表里存储，而且可以把每队人的对话放入多个表里，但感觉暂时没必要； -->
+  或许可以把每对人的对话存入一个表内，而不是混合起来，至于表名可以放入另一个表里存储，而且可以把每队人的对话放入多个表里，但感觉暂时没必要； -->
+  <style>
+/* --- 全局与主题美化 --- */
+:root {
+  --bg-color: #1a1a2e; /* 深邃的星空背景色 */
+  --panel-bg-color: rgba(23, 23, 39, 0.7); /* 面板半透明背景色 */
+  --text-primary-color: #e0e0e0; /* 主要文字颜色 */
+  --text-secondary-color: #a0a0b0; /* 次要文字颜色 */
+  --accent-gradient: linear-gradient(135deg, #4f46e5, #d946ef); /* 炫彩极光渐变色 */
+  --other-bubble-color: #3a3a50; /* 对方消息气泡颜色 */
+  --border-color: rgba(128, 128, 150, 0.3); /* 边框颜色 */
+  --glow-color: rgba(79, 70, 229, 0.5); /* 辉光效果颜色 */
+}
+
+/* 动画：元素淡入 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary-color);
+  font-family: 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+/* --- 整体布局美化 --- */
+.el-card {
+  background-color: var(--panel-bg-color) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px); /* 核心的毛玻璃效果 */
+  transition: all 0.3s ease;
+}
+
+.el-card:hover {
+  box-shadow: 0 0 20px var(--glow-color);
+}
+
+/* --- 左侧用户列表美化 --- */
+.el-table {
+  background-color: transparent !important;
+}
+
+/* 移除表格的陈旧线条 */
+.el-table, .el-table__expanded-cell {
+  background-color: transparent !important;
+}
+.el-table th, .el-table tr, .el-table td {
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--text-primary-color) !important;
+}
+.el-table::before {
+  height: 0px !important; /* 移除表格底部边框 */
+}
+
+/* 用户列表行样式 */
+.el-table__row {
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.el-table__row:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 用户列表头像 */
+.d {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%; /* 圆形头像 */
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+  transition: transform 0.3s ease;
+}
+.el-table__row:hover .d {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px var(--glow-color);
+}
+.j{
+        float: right;
+      margin-right:20px;
+      height: 50px;
+      margin-top: -50px;
+    }
+ .k{
+        float: left;
+      margin-left:20px;
+      height: 50px;
+      margin-top: -50px;
+    }
+    .d{
+        height:50px;
+        width:50px;
+        object-fit: cover;
+        border-radius: 10px;
+    }
+     .item {
+  margin-top: 10px;
+  margin-right: 40px;
+  
+}
+/* 用户列表标题与最后消息 */
+.title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary-color);
+}
+.zuo {
+  font-size: 12px;
+  color: var(--text-secondary-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zu, .zu o {
+  color: #f7b733 !important; /* 进群链接特殊颜色 */
+}
+
+/* 'chatting...' 状态的动态效果 */
+span[style*="color: limegreen"] {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  color: transparent !important;
+  font-weight: bold;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+
+/* --- 右侧聊天窗口美化 --- */
+.el-col > div[style*="width: 800px"] {
+  background-color: var(--panel-bg-color) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 聊天窗口头部 */
+div[style*="text-align: center; line-height: 50px;"] {
+  color: var(--text-primary-color);
+  font-size: 18px;
+  font-weight: bold;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* 聊天内容区域 */
+div[style*="height: 450px;"] {
+  padding: 10px 20px;
+  border-top: 1px solid var(--border-color) !important;
+}
+
+/* 美化滚动条 */
+div[style*="height: 450px;"]::-webkit-scrollbar {
+  width: 6px;
+}
+div[style*="height: 450px;"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+div[style*="height: 450px;"]::-webkit-scrollbar-thumb {
+  background: var(--accent-gradient);
+  border-radius: 3px;
+}
+
+/* 聊天头像 */
+.a, .b {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%; /* 圆形头像 */
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  animation: fadeIn 0.5s ease-out;
+}
+.a { float: left; margin-right: 15px; }
+.b { float: right; margin-left: 15px; }
+
+
+/* 聊天气泡 */
+.chat-bubble {
+  padding: 12px 18px;
+  border-radius: 18px;
+  margin: 5px 0 10px; /* 调整间距 */
+  max-width: 70%;
+  line-height: 1.6;
+  animation: fadeIn 0.5s ease-out;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  position: relative; /* 为了伪元素定位 */
+}
+
+/* 对方的气泡 */
+.chat-bubble.left {
+  background-color: var(--other-bubble-color);
+  color: var(--text-primary-color);
+  border-bottom-left-radius: 4px; /* 调整为更现代的气泡形状 */
+  float: left; /* 覆盖旧样式 */
+  left: 0; /* 移除旧的偏移 */
+}
+
+/* 自己的气泡，使用炫彩渐变 */
+.chat-bubble.right {
+  background: var(--accent-gradient);
+  color: white;
+  border-bottom-right-radius: 4px;
+  float: right; /* 覆盖旧样式 */
+  right: 0; /* 移除旧的偏移 */
+}
+
+/* 移除旧的三角形伪元素，因为现代设计中不太常用 */
+.chat-bubble.left::before, .chat-bubble.right::before {
+  content: none;
+}
+
+/* 图片消息 */
+.c, .e {
+  max-width: 250px;
+  height: auto;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  animation: fadeIn 0.5s ease-out;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+.c { float: left; margin-left: 65px; }
+.e { float: right; margin-right: 65px; }
+.c:hover, .e:hover {
+    transform: scale(1.05);
+}
+
+/* 消息时间戳 */
+.l, .m {
+  text-align: center;
+  color: var(--text-secondary-color);
+  font-size: 12px;
+  font-style: normal;
+  margin: 20px auto !important;
+ 
+  padding: 4px 12px;
+  padding-bottom: -10px;
+  background-color: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  display: block;
+  width: fit-content;
+}
+
+/* --- 底部输入区域美化 --- */
+div[style*="height: 100px"] {
+  border-top: 1px solid var(--border-color) !important;
+  background-color: rgba(0,0,0,0.1); /* 给底部一个轻微的背景区分 */
+  padding-top: 10px; /* 增加一点内边距 */
+  flex-shrink: 0; /* 防止被压缩 */
+}
+
+textarea {
+  background: transparent !important;
+  color: var(--text-primary-color) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border-color) !important; /* 只保留底部边框 */
+  font-size: 16px;
+  padding: 10px 20px !important;
+  height: 40px !important; /* 调整高度 */
+  resize: none;
+  transition: border-color 0.3s ease;
+}
+textarea:focus {
+  outline: none !important;
+  border-bottom-color: #4f46e5 !important; /* 聚焦时高亮 */
+}
+
+/* 按钮区域 */
+div[style*="text-align: right"] {
+  padding: 10px 20px !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px; /* 按钮间距 */
+}
+
+/* 文件上传按钮美化 */
+input[type="file"] {
+  color: var(--text-secondary-color);
+}
+input[type="file"]::file-selector-button {
+  background: var(--other-bubble-color);
+  border: none;
+  color: var(--text-primary-color);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+input[type="file"]::file-selector-button:hover {
+  background-color: #4f46e5;
+}
+
+
+/* 按钮美化 */
+.el-button {
+  border: none !important;
+  background: var(--accent-gradient) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px var(--glow-color);
+}
+
+/* 次要按钮（如取消） */
+.el-button--primary.is-plain, .el-button[type="primary"]:nth-last-child(2) {
+    background: var(--other-bubble-color) !important;
+}
+
+</style>
