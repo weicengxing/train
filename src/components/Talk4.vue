@@ -217,9 +217,10 @@
   <script >
   import request from "@/utils/request";
   import reque from "../utils/request";
-  import { ElMessage,ElMessageBox  } from 'element-plus'
+  import { ElMessage,ElMessageBox  } from 'element-plus';
 import { da } from "element-plus/es/locales.mjs";
-import{userurl} from '../utils/config.ts'
+import{userurl} from '../utils/config.ts';
+//import { random } from "gsap";
   let socket;
   export default {
     name: "Im",
@@ -435,12 +436,10 @@ import{userurl} from '../utils/config.ts'
         },
          getAvatarUrl(imgPath) {
     if ((!imgPath || imgPath=="/src/assets/循迹.jpg")) {
-      let seed = 0; 
+      let seed =1;  // 生成一个随机数作为种子
       // 返回随机头像地址（你可以换成你喜欢的随机图片API）
-     seed=this.qunsui[(this.sindex++)%this.count];
-     
-     
-     
+      //seed = Math.floor(Math.random() * 1000); // 生成一个0-999之间的随机数
+      seed=this.qunsui[this.sindex++ % this.count];
       return `https://picsum.photos/seed/${seed}/200/200?face`;
     } else {
      
