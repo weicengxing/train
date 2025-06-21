@@ -436,11 +436,12 @@ import{userurl} from '../utils/config.ts';
         },
          getAvatarUrl(imgPath) {
     if ((!imgPath || imgPath=="/src/assets/循迹.jpg")) {
-      let seed =1;  // 生成一个随机数作为种子
+      //let seed =1;  // 生成一个随机数作为种子
       // 返回随机头像地址（你可以换成你喜欢的随机图片API）
-      //seed = Math.floor(Math.random() * 1000); // 生成一个0-999之间的随机数
-      seed=this.qunsui[this.sindex++ % this.count];
-      return `https://picsum.photos/seed/${seed}/200/200?face`;
+      let seed = Math.floor(Math.random() * 1000); // 生成一个0-999之间的随机数
+      //let seed=this.qunsui[this.sindex++ % this.count];
+      return 'https://picsum.photos/800/600'
+     // return `https://picsum.photos/seed/${seed}/200/200?face`;
     } else {
      
       return `https://raw.githubusercontent.com/weicengxing100/images/main/${imgPath.replace('/src/assets/', '')}`;
