@@ -1,105 +1,82 @@
 <template>
-    <div style="padding: 10px; margin-bottom: 50px">
-      <el-row>
-        <el-col :span="8">
-          <el-card style="width: 100%; min-height: 100%; color: #333">
-           <div style="padding-bottom: 10px; border-bottom: 1px solid #ccc">在线用户<span style="font-size: 12px">（点击聊天气泡开始聊天）</span></div>
-            <!-- <div style="padding: 10px 0" v-for="user in users" :key="user.username">
-              <span>{{ user.username }}</span>
-             
-                 <el-icon  @click="chatUser = user.username"><ChatDotRound /></el-icon>
-              <span style="font-size: 12px;color: limegreen; margin-left: 5px" v-if="user.username === chatUser">chatting...</span>
-            </div> -->
-            <el-table
-       
-        ref="muti"
-     
-     
-        :data="users"
-        :header-cell-style="{
-          color: '#2E2E2E',
-          fontSize: '10px',
-          fontWeight: '400',
-        
-          
-        }"
-        :row-style="{ height: '1px' }"
-        
-        style="width: 100%"
-        class="i"
-      >
-      <el-table-column label="" color="black"  width="85" >
-       
-        <template v-slot="scope">
-  <el-badge
-    :value="parseInt(scope.row.shz)"
-    :max="99"
-    class="item"
-    :show-zero="show"
-    :hidden="scope.row.username == chatUser"
-  >
-    <img
-      :src="getAvatarUrl(scope.row.img)"
-      class="d"
-    />
-  </el-badge>
-  
-</template>
+  <div style="padding: 10px; margin-bottom: 50px">
+    <el-row>
+      <el-col :span="8">
+        <el-card style="width: 100%; min-height: 100%; color: #333">
+          <div style="padding-bottom: 10px; border-bottom: 1px solid #ccc">在线用户<span style="font-size: 12px">（点击用户行开始聊天）</span></div>
+          <!-- 
+            - [MODIFIED] 1. 添加了 @row-click 事件，使得点击整行都会调用 xuanr 方法。
+            - [MODIFIED] 2. 为 :row-style 添加了 cursor: 'pointer'，给用户一个可点击的视觉反馈。
+          -->
+          <el-table
+            ref="muti"
+            :data="users"
+            :header-cell-style="{
+              color: '#2E2E2E',
+              fontSize: '10px',
+              fontWeight: '400',
+            }"
+            :row-style="{ height: '1px', cursor: 'pointer' }"
+            @row-click="(row) => xuanr(row.username, row.qunid)"
+            style="width: 100%"
+            class="i"
+          >
+            <el-table-column label="" color="black" width="85">
+              <template v-slot="scope">
+                <el-badge
+                  :value="parseInt(scope.row.shz)"
+                  :max="99"
+                  class="item"
+                  :show-zero="show"
+                  :hidden="scope.row.username == chatUser"
+                >
+                  <img
+                    :src="getAvatarUrl(scope.row.img)"
+                    class="d"
+                  />
+                </el-badge>
+              </template>
+            </el-table-column>
 
-       
-    </el-table-column>
-     
-     
-       
-     
-        <el-table-column label="" color="black"  width="140" >
-          <template v-slot="scope">
-            <a class="title" >
-            {{ scope.row.username }}
-            </a>
-            <p class="zuo" v-if="scope.row.type!='invite'&&scope.row.qunid==null ">
-             {{ scope.row.last }}
-
-            </p>
-            <p class="zuo" v-if="scope.row.type!='invite'&&scope.row.qunid ">
-            <liu style="color:red;">{{ scope.row.from+":" }}</liu> {{ scope.row.last }}
-
-            </p>
-            <p class="zu" v-if="scope.row.type=='invite' ">
-              <el-icon><Share /></el-icon>
-      <o style="color:brown;margin-left: 8px;">进群链接</o>
+            <el-table-column label="" color="black" width="180">
+              <template v-slot="scope">
+                <a class="title">
+                  {{ scope.row.username }}
+                </a>
+                <p class="zuo" v-if="scope.row.type!='invite'&&scope.row.qunid==null ">
+                  {{ scope.row.last }}
+                </p>
+                <p class="zuo" v-if="scope.row.type!='invite'&&scope.row.qunid ">
+                  <liu style="color:red;">{{ scope.row.from+":" }}</liu> {{ scope.row.last }}
+                </p>
+                <p class="zu" v-if="scope.row.type=='invite' ">
+                  <el-icon><Share /></el-icon>
+                  <o style="color:brown;margin-left: 8px;">进群链接</o>
+                </p>
+              </template>
+            </el-table-column>
             
-            </p>
-          </template>
-       
-       
-       
-      </el-table-column>
-    
-      <el-table-column label="" color="black"  width="10" >
-       
-       
-       
-      </el-table-column>
-      <el-table-column label="" color="black"  width="50" >
-        <template v-slot="scope">
-        <el-icon  @click="xuanr(scope.row.username,scope.row.qunid) " color="#FF3333"><ChatDotRound /></el-icon>
-       </template>
-       
-    </el-table-column>
-     
-    <el-table-column label="" color="black"  width="100" >
-        <template v-slot="scope">
-    
-        <span style="font-size: 12px;color: limegreen; margin-left: 5px" v-if="scope.row.username == chatUser">chatting...</span>
-       </template>
-       
-    </el-table-column>
-        
-      </el-table>
-          </el-card>
-        </el-col>
-        <el-col :span="16">
+            <!-- 
+              - [MODIFIED] 3. 将原来的聊天图标列和 'chatting...' 文本列合并成一个状态列。
+              - 它会根据 scope.row.username === chatUser 的结果来条件渲染。
+            -->
+            <el-table-column label="状态" align="center">
+              <template #default="scope">
+                <!-- 如果是当前聊天对象，显示 '聊天中...' -->
+                <span style="font-size: 12px; color: limegreen;" v-if="scope.row.username === chatUser">
+                  聊天中...
+                </span>
+                <!-- 否则，显示聊天图标 -->
+                <el-icon v-else color="#FF3333">
+                  <ChatDotRound />
+                </el-icon>
+              </template>
+            </el-table-column>
+
+          </el-table>
+        </el-card>
+      </el-col>
+      <el-col :span="16">
         <div style="width: 800px; margin: 0 auto; background-color: white;
                     border-radius: 5px; box-shadow: 0 0 10px #ccc">
           <div style="text-align: center; line-height: 50px;" >
@@ -158,12 +135,6 @@
       
         
           </div>
-
-
-
-
-
-
           <div style="height: 100px">
             <textarea v-model="text" style="height: 60px; width: 100%; padding: 20px; border: none; border-top: 1px solid #ccc;
              border-bottom: 1px solid #ccc; outline: none">
@@ -439,10 +410,9 @@ import{userurl} from '../utils/config.ts';
       //let seed =1;  // 生成一个随机数作为种子
       // 返回随机头像地址（你可以换成你喜欢的随机图片API）
       let seed = Math.floor(Math.random() * 1000); // 生成一个0-999之间的随机数
-      
-    
-       
+      if(seed<500)
       return "https://picsum.photos/"+seed+"/600"
+    else return `https://picsum.photos/seed/${seed}/200/200?face`
      // return `https://picsum.photos/seed/${seed}/200/200?face`;
     } else {
      
