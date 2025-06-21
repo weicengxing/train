@@ -134,7 +134,7 @@ export default defineComponent({
     if (this.name) {
       const fd = new FormData();
       fd.append("manage", this.name);
-      request.post("/user/getPhoto", fd).then(res => { this.imgStr = `https://raw.githubusercontent.com/weicengxing100/images/main/${this.name.replace('/src/assets/', '')}`; });
+     this.imgStr = `https://raw.githubusercontent.com/weicengxing100/images/main/${this.name.replace('/src/assets/', '')}.jpg`;
     }
   },
   methods: {
