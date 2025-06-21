@@ -229,7 +229,7 @@ ref="muti"
   import axios from 'axios'
   import { Download, Position } from '@element-plus/icons-vue';
   import musicPlayer, { playerState, playerControls } from '../utils/musicPlayer';
-  import{userurl} from '/public/config.ts'
+  import{userurl} from '../utils/config.ts'
   const background = ref(false)
   const disabled = ref(false)
   const currentPage3 = ref(1)

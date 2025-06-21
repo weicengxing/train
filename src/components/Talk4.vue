@@ -219,7 +219,7 @@
   import reque from "../utils/request";
   import { ElMessage,ElMessageBox  } from 'element-plus'
 import { da } from "element-plus/es/locales.mjs";
-import{userurl} from '/public/config.ts'
+import{userurl} from '../utils/config.ts'
   let socket;
   export default {
     name: "Im",

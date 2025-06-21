@@ -74,7 +74,7 @@
 
 
 import axios from 'axios'
-import{userurl} from '/public/config.ts'
+import{userurl} from '../utils/config.ts'
 // 创建一个axios对象出来
 const request = axios.create({
      baseURL: userurl, // 后端请求端口设置，根据自己的端口进行设置

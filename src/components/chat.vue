@@ -3,8 +3,7 @@ import { ref, onMounted, nextTick } from 'vue';
 import { marked } from 'marked';
 import { vOnClickOutside } from '@vueuse/components';
 import { useRoute } from 'vue-router';
-import { Upload } from '@element-plus/icons-vue';
-import{chaturl} from'/public/config.ts';
+import{chaturl} from '../utils/config.ts'
 
 // ... script 部分与上一版完全相同，无需修改 ...
 const availableModels = ref([]);
