@@ -439,8 +439,9 @@ import{userurl} from '../utils/config.ts';
       //let seed =1;  // 生成一个随机数作为种子
       // 返回随机头像地址（你可以换成你喜欢的随机图片API）
       //let seed = Math.floor(Math.random() * 1000); // 生成一个0-999之间的随机数
-       seed=this.qunsui[(this.sindex )% this.count];
+       seed=this.qunsui[this.count-this.sindex];
        this.sindex= this.sindex+1;
+       if(this.sindex==this.count) this.index=0;
       return "https://picsum.photos/"+seed+"/600"
      // return `https://picsum.photos/seed/${seed}/200/200?face`;
     } else {
