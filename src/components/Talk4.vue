@@ -237,7 +237,7 @@ import{userurl} from '../utils/config.ts';
         sindex:0,
         chu:0,
         count:0,
-        qunsui:[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+        qunsui:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
          content: '',
         userna:'',
         toux:'',
@@ -438,8 +438,9 @@ import{userurl} from '../utils/config.ts';
     if ((!imgPath || imgPath=="/src/assets/循迹.jpg")) {
       //let seed =1;  // 生成一个随机数作为种子
       // 返回随机头像地址（你可以换成你喜欢的随机图片API）
-      let seed = Math.floor(Math.random() * 1000); // 生成一个0-999之间的随机数
-      //let seed=this.qunsui[this.sindex++ % this.count];
+      //let seed = Math.floor(Math.random() * 1000); // 生成一个0-999之间的随机数
+       seed=this.qunsui[(this.sindex )% this.count];
+       this.sindex= this.sindex+1;
       return "https://picsum.photos/"+seed+"/600"
      // return `https://picsum.photos/seed/${seed}/200/200?face`;
     } else {
